@@ -1,11 +1,13 @@
 ---
-name: to-tickets
-description: Break a plan, spec, or PRD into independently-grabbable tickets on the project issue tracker using tracer-bullet vertical slices. Use when user wants to convert requirements into JIRA tickets.
+name: to-tasks
+description: Break a plan, spec, or PRD into independently-grabbable tasks on the project task tracker using tracer-bullet vertical slices. Use when user wants to convert a plan into tasks, requirements into tasks, create implementation tasks or break down work into tasks.
 ---
 
-# To Tickets
+# To Tasks
 
-Break a plan into independently-grabbable JIRA tickets using vertical slices (tracer bullets). Each ticket should be no more than one MR worth of work. If you haven't already you should load the `/jira-tickets` skill to aid with creating tickets.
+The word "Task" is synonymous with JIRA's "Ticket" and Github's "Issues": a mechanism with which work is captured and tracked through to completion in an system.
+
+Break a plan into independently-grabbable tasks using vertical slices (tracer bullets). Each task should be no more than one PR/MR worth of work.
 
 Domain knowledge can be found in `CONTEXT.md` or if there are many domain documents in the codebase then `CONTEXT-MAP.md` will contain references to their locations. Use this documentation to ensure your wording is inline with the codebase architecture.
 
@@ -23,7 +25,7 @@ If you have not already explored the codebase, do so to understand the current s
 
 ### 3. Draft vertical slices
 
-Break the plan into **tracer bullet** tickets. Each issue is a thin vertical slice that cuts through ALL integration layers end-to-end, NOT a horizontal slice of one layer.
+Break the plan into **tracer bullet** tasks. Each issue is a thin vertical slice that cuts through ALL integration layers end-to-end, NOT a horizontal slice of one layer.
 
 <vertical-slice-rules>
 - Each slice delivers a narrow but COMPLETE path through every layer (schema, API, UI, tests)
@@ -49,12 +51,13 @@ Iterate until the user approves the breakdown.
 
 ### 5. Publish the issues to the issue tracker
 
-For each approved slice, publish a sub-task to JIRA under the primary ticket being expanded on. Use the ticket body template below.
+For each approved slice, publish a task to the task tracker. If there is already a parent task, then create sub-tasks if the workload is greater than one PR/MR. Use the task body template below.
 
-Publish tickets in dependency order (blockers first) so you can reference real issue identifiers in the "Blocked by" field.
+Publish tasks in dependency order (blockers first) so you can reference real issue identifiers in the "Blocked by" field.
 
-<issue-template>
+<task-template>
 # Summary of Task
+
 
 ## What to build
 
@@ -64,7 +67,7 @@ Avoid specific file paths or code snippets — they go stale fast.
 
 ## User Story
 
-The user story being implemented by this ticket.
+The user story being implemented by this task.
 
 ### Acceptance criteria
 
@@ -76,10 +79,10 @@ The acceptance criteria to fulfil this user story.
 
 ## Blocked by
 
-- A reference to the blocking ticket (if any)
+- A reference to the blocking task (if any)
 
 Or "No blockers - can start immediately" if no blockers.
 
-</issue-template>
+</task-template>
 
 Do NOT close or modify any parent issue.
