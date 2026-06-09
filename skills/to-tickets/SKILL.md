@@ -23,7 +23,7 @@ If you have not already explored the codebase, do so to understand the current s
 
 ### 3. Draft vertical slices
 
-Break the plan into **tracer bullet** tickets. Each issue is a thin vertical slice that cuts through ALL integration layers end-to-end, NOT a horizontal slice of one layer. Each ticket
+Break the plan into **tracer bullet** tickets. Each issue is a thin vertical slice that cuts through ALL integration layers end-to-end, NOT a horizontal slice of one layer.
 
 <vertical-slice-rules>
 - Each slice delivers a narrow but COMPLETE path through every layer (schema, API, UI, tests)
