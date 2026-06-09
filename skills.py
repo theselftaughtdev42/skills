@@ -11,7 +11,7 @@ SKILLS_DIR = ROOT / "skills"
 
 
 def default_skills_dir() -> Path:
-    return Path.home() / ".agents" / "skills"
+    return Path.home() / ".claude" / "skills"
 
 
 def available_skills() -> list[Path]:
