@@ -50,7 +50,7 @@ Issues and PRDs for this repo live in Jira. Use the Atlassian CLI (`acli`) for a
   ```bash
   acli jira workitem transition --key PROJ-123 --status "..." --yes
   ```
-  `acli` cannot list available transitions — always ask the user which status to transition to before running this command. Valid transitions depend on the project's workflow and the issue's current status. Post a comment before transitioning if an explanation is required.
+  `acli` cannot list available transitions — always ask the user which status to transition to before running this command. Valid transitions depend on the project's workflow and the issue's current status. Post a comment before transitioning if an explanation is required. DO NOT close issues without explicit permission!
 
 ## Conventions for search
 
