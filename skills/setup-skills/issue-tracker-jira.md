@@ -10,9 +10,61 @@ Issues and PRDs for this repo live in Jira. Use the Atlassian CLI (`acli`) for a
     --project "PROJ" \
     --type "Task" \
     --summary "..." \
-    --description "..."
+    --description-file /tmp/issue-body.json
   ```
-  Use a heredoc for multi-line descriptions.
+  Jira uses **Atlassian Document Format (ADF)**, not Markdown. Passing `--description "..."` with Markdown will render as literal text (asterisks, hashes and all). Always write the description as ADF JSON and pass it via `--description-file`.
+
+  Generate the ADF file with a Python heredoc:
+  ```bash
+  python3 << 'EOF'
+  import json, sys
+
+  def p(text):
+      return {"type": "paragraph", "content": [{"type": "text", "text": text}]}
+
+  def h(level, text):
+      return {"type": "heading", "attrs": {"level": level}, "content": [{"type": "text", "text": text}]}
+
+  def task_list(items):
+      return {
+          "type": "taskList",
+          "attrs": {"localId": "1"},
+          "content": [
+              {"type": "taskItem", "attrs": {"localId": str(i+1), "state": "TODO"},
+               "content": [{"type": "text", "text": item}]}
+              for i, item in enumerate(items)
+          ]
+      }
+
+  doc = {
+      "version": 1,
+      "type": "doc",
+      "content": [
+          h(2, "What to build"),
+          p("Describe the end-to-end behaviour here."),
+          h(2, "User Story"),
+          p("As a ... I want ... so that ..."),
+          h(3, "Acceptance criteria"),
+          task_list([
+              "Criterion 1",
+              "Criterion 2",
+          ]),
+          h(2, "Blocked by"),
+          p("No blockers - can start immediately"),
+      ]
+  }
+  json.dump(doc, open("/tmp/issue-body.json", "w"))
+  EOF
+  ```
+
+  ADF node reference:
+  | Content | ADF type |
+  |---|---|
+  | Heading `##` | `{"type":"heading","attrs":{"level":2},"content":[...]}` |
+  | Paragraph | `{"type":"paragraph","content":[{"type":"text","text":"..."}]}` |
+  | Checkbox list | `taskList` + `taskItem` with `"state":"TODO"` (see above) |
+  | Bullet list | `{"type":"bulletList","content":[{"type":"listItem","content":[p(...)]}]}` |
+  | Bold text | `{"type":"text","text":"...","marks":[{"type":"strong"}]}` |
 
 - **Read an issue**:
   ```bash
