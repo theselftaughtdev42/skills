@@ -64,6 +64,26 @@ def deploy_skills(args: argparse.Namespace) -> int:
     return 0
 
 
+def deprecate_skill(args: argparse.Namespace) -> int:
+    skill = SKILLS_DIR / args.name
+    if not skill.is_dir() or not (skill / "SKILL.md").exists():
+        print(f"Unknown skill: {args.name}", file=sys.stderr)
+        return 1
+
+    if _is_deprecated(skill):
+        print(f"{args.name} is already deprecated.")
+        return 0
+
+    skill_md = skill / "SKILL.md"
+    lines = skill_md.read_text().splitlines()
+
+    # Insert after the opening ---
+    lines.insert(1, "deprecated: true")
+    skill_md.write_text("\n".join(lines) + "\n")
+    print(f"Marked {args.name} as deprecated.")
+    return 0
+
+
 def cleanup_skills(args: argparse.Namespace) -> int:
     dest = args.dest.expanduser()
     if not dest.exists():
@@ -98,6 +118,10 @@ def main() -> int:
     deploy_parser = subparsers.add_parser("deploy")
     deploy_parser.add_argument("--dest", type=Path, default=default_skills_dir())
     deploy_parser.set_defaults(func=deploy_skills)
+
+    deprecate_parser = subparsers.add_parser("deprecate")
+    deprecate_parser.add_argument("name")
+    deprecate_parser.set_defaults(func=deprecate_skill)
 
     cleanup_parser = subparsers.add_parser("cleanup")
     cleanup_parser.add_argument("--dest", type=Path, default=default_skills_dir())
