@@ -2,7 +2,7 @@
 
 The `mysk:` block uses full, readable key names — `state`, `source`, `modified` — rather than abbreviations. Lifecycle is a single mutually-exclusive `state` key, always written explicitly with one of `active`, `init`, `experimental`, or `deprecated`. Provenance for imported skills adds `source` (URL) and `modified` (bool).
 
-We chose verbose keys because a token spike (`spikes/frontmatter_tokens.py`, using `tiktoken`) showed abbreviation buys nothing: each candidate key is a single token in both `o200k_base` and `cl100k_base`, so `state`/`source`/`modified` cost exactly the same as `st`/`src`/`mod` (verbose, abbreviated, and hybrid blocks all measured 33 tokens for the worst-case imported skill). Given zero token savings, readability for the humans and agents that read `SKILL.md` is the deciding factor.
+We chose verbose keys because a token spike using `tiktoken` showed abbreviation buys nothing: each candidate key is a single token in both `o200k_base` and `cl100k_base`, so `state`/`source`/`modified` cost exactly the same as `st`/`src`/`mod` (verbose, abbreviated, and hybrid blocks all measured 33 tokens for the worst-case imported skill). Given zero token savings, readability for the humans and agents that read `SKILL.md` is the deciding factor.
 
 ## Considered options
 
