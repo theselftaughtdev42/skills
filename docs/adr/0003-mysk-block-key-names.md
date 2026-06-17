@@ -1,0 +1,18 @@
+# mysk block key names: verbose, with an always-explicit `state` key
+
+The `mysk:` block uses full, readable key names — `state`, `source`, `modified` — rather than abbreviations. Lifecycle is a single mutually-exclusive `state` key, always written explicitly with one of `active`, `init`, `experimental`, or `deprecated`. Provenance for imported skills adds `source` (URL) and `modified` (bool).
+
+We chose verbose keys because a token spike (`spikes/frontmatter_tokens.py`, using `tiktoken`) showed abbreviation buys nothing: each candidate key is a single token in both `o200k_base` and `cl100k_base`, so `state`/`source`/`modified` cost exactly the same as `st`/`src`/`mod` (verbose, abbreviated, and hybrid blocks all measured 33 tokens for the worst-case imported skill). Given zero token savings, readability for the humans and agents that read `SKILL.md` is the deciding factor.
+
+## Considered options
+
+- **Abbreviated keys** (`st`, `src`, `mod`) — rejected: identical token cost, worse readability.
+- **Hybrid** (mix of full and short) — rejected: no measurable benefit and inconsistent.
+- **Independent boolean lifecycle flags** (`init`/`experimental`/`deprecated`) — rejected: lifecycle states are mutually exclusive, so independent booleans permit invalid combinations (e.g. `experimental: true` + `deprecated: true`). A single `state` key makes mutual exclusivity structural.
+- **Keyless Active** (omit `state` when Active, defaulting on read) — rejected: it saves ~4 tokens per Active skill but makes the data non-uniform and forces the reader to guess. Writing `state: active` everywhere lets `from_frontmatter` be strict and fail-fast on un-migrated files; the `migrate` command backfills `state` for legacy skills.
+
+## Consequences
+
+- The `mysk:` block is optional: a skill with no block has yet to be migrated and is not owned (ADR-0001). The domain layer never fabricates a block or a default `state` — adopting a skill is the `migrate` command's job.
+- When the block *is* present it must carry an explicit `state` (one of `active`, `init`, `experimental`, `deprecated`). A present-but-stateless block is malformed: `from_frontmatter` raises.
+- Adding a future lifecycle state means adding a `state` value, not a new key.

@@ -1,0 +1,16 @@
+from __future__ import annotations
+
+import enum
+
+
+class LifecycleState(enum.Enum):
+    """Where a skill sits in its lifecycle. Active is the implicit default."""
+
+    INIT = "init"
+    ACTIVE = "active"
+    EXPERIMENTAL = "experimental"
+    DEPRECATED = "deprecated"
+
+    @property
+    def is_deployable(self) -> bool:
+        return self in (LifecycleState.ACTIVE, LifecycleState.EXPERIMENTAL)

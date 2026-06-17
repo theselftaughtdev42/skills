@@ -20,6 +20,14 @@ _Avoid_: install, publish, sync
 An agent-specific directory on the local machine that receives symlinked skills (e.g. `~/.claude/skills`, `~/.cursor/skills`). Targets are auto-discovered by checking whether the agent's home directory exists — no config file is maintained.
 _Avoid_: destination, output directory
 
+**Init**:
+A lifecycle state indicating a skill is owned by `mysk` (it has a `mysk` block) but is not yet ready to deploy — typically a freshly scaffolded skill still being written. Init skills are skipped during deploy.
+_Avoid_: new, scaffold, draft
+
+**Active**:
+The primary lifecycle state, indicating a skill is ready for regular use. Active skills are deployed.
+_Avoid_: live, enabled, ready, stable
+
 **Experimental**:
 A lifecycle state indicating a skill is under active evaluation. It may be self-authored or imported, but is not yet trusted for regular use. Experimental skills are still deployed; they may graduate to active or be deprecated.
 _Avoid_: draft, WIP, beta
@@ -41,7 +49,7 @@ A boolean flag inside the `mysk` frontmatter block on imported skills. `false` m
 _Avoid_: changed, customised, forked
 
 **mysk block**:
-The `mysk:` frontmatter section in `SKILL.md` that contains all mysk-managed metadata (`source`, `modified`, `experimental`, `deprecated`). Its presence is the canonical signal that a skill is owned by `mysk`. Generic fields (`name`, `description`) live outside this block and are readable by any agent.
+The `mysk:` frontmatter section in `SKILL.md` that contains all mysk-managed metadata: the skill's lifecycle state and, for imported skills, its provenance (Source and Modified). Its presence is the canonical signal that a skill is owned by `mysk`. Generic fields (`name`, `description`) live outside this block and are readable by any agent. The exact key names are recorded in ADR-0003.
 _Avoid_: mysk metadata, mysk config
 
 ## Example dialogue

@@ -1,0 +1,40 @@
+from __future__ import annotations
+
+import yaml
+
+_FENCE = "---"
+
+
+def read(text: str) -> tuple[dict, str]:
+    """Split a SKILL.md into its YAML frontmatter dict and the remaining body.
+
+    Schema-agnostic: returns whatever keys the frontmatter contains. A document
+    with no leading `---` fence is treated as all body with empty frontmatter.
+    """
+    lines = text.splitlines(keepends=True)
+    if not lines or lines[0].strip() != _FENCE:
+        return {}, text
+
+    for index in range(1, len(lines)):
+        if lines[index].strip() == _FENCE:
+            raw = "".join(lines[1:index])
+            body = "".join(lines[index + 1 :])
+            return yaml.safe_load(raw) or {}, body
+
+    return {}, text
+
+
+def write(data: dict, body: str) -> str:
+    """Render a frontmatter dict and body back into a SKILL.md string.
+
+    Inverse of `read`: `read(write(data, body))` returns the same data and body.
+    Key order is preserved and long values (e.g. source URLs) are never wrapped.
+    """
+    rendered = yaml.safe_dump(
+        data,
+        sort_keys=False,
+        allow_unicode=True,
+        default_flow_style=False,
+        width=10**9,
+    )
+    return f"{_FENCE}\n{rendered}{_FENCE}\n{body}"
