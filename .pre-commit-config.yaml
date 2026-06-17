@@ -13,3 +13,8 @@ repos:
         entry: uv run pyrefly check
         args: [src/mysk]
         pass_filenames: false
+      - id: pytest
+        name: pytest
+        language: system
+        entry: uv run pytest
+        pass_filenames: false
