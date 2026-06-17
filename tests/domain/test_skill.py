@@ -42,7 +42,10 @@ def test_imported_skill_writes_source_and_modified():
         description="bar",
         mysk=MyskBlock(
             state=LifecycleState.EXPERIMENTAL,
-            provenance=Provenance(source="https://github.com/owner/repo", modified=True),
+            provenance=Provenance(
+                source="https://github.com/owner/repo",
+                modified=True,
+            ),
         ),
     )
 
@@ -58,7 +61,9 @@ def test_clean_import_still_writes_modified_false():
         description="bar",
         mysk=MyskBlock(
             state=LifecycleState.ACTIVE,
-            provenance=Provenance(source="https://github.com/owner/repo", modified=False),
+            provenance=Provenance(
+                source="https://github.com/owner/repo", modified=False
+            ),
         ),
     )
 
@@ -146,7 +151,9 @@ def test_skill_survives_full_disk_round_trip():
         description="Ultra-compressed code review",
         mysk=MyskBlock(
             state=LifecycleState.EXPERIMENTAL,
-            provenance=Provenance(source="https://github.com/owner/repo", modified=False),
+            provenance=Provenance(
+                source="https://github.com/owner/repo", modified=False
+            ),
         ),
     )
     body = "# caveman-review\n\nDo the thing.\n"

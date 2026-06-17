@@ -22,7 +22,7 @@ class Skill(pydantic.BaseModel):
     mysk: MyskBlock | None = None
 
     @classmethod
-    def from_frontmatter(cls, data: dict) -> "Skill":
+    def from_frontmatter(cls, data: dict) -> Skill:
         """Build a Skill from a parsed frontmatter dict (inverse of to_frontmatter).
 
         A skill with no `mysk` key is un-migrated and gets `mysk=None`. When the
@@ -34,7 +34,9 @@ class Skill(pydantic.BaseModel):
         if "mysk" in data:
             raw = data["mysk"]
             if not isinstance(raw, dict) or "state" not in raw:
-                raise ValueError("mysk block exists but is missing required 'state' key")
+                raise ValueError(
+                    "mysk block exists but is missing required 'state' key"
+                )
             block = MyskBlock(
                 state=LifecycleState(raw["state"]),
                 provenance=Provenance(

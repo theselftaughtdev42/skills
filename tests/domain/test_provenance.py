@@ -1,5 +1,5 @@
-import pytest
 import pydantic
+import pytest
 
 from mysk.domain import Provenance
 

@@ -30,7 +30,12 @@ def test_errors_when_run_outside_the_source_repo(monkeypatch):
 
 
 def test_unmigrated_skill_gets_init_block(monkeypatch, tmp_path):
-    path = _skill(tmp_path, "foo", "name: foo\ndescription: does a thing\n", body="# Foo\n\nBody stays put.\n")
+    path = _skill(
+        tmp_path,
+        "foo",
+        "name: foo\ndescription: does a thing\n",
+        body="# Foo\n\nBody stays put.\n",
+    )
     result = _run(monkeypatch, tmp_path)
     assert result.exit_code == 0
     content = path.read_text()
@@ -40,7 +45,12 @@ def test_unmigrated_skill_gets_init_block(monkeypatch, tmp_path):
 
 
 def test_already_compliant_skill_is_left_untouched(monkeypatch, tmp_path):
-    path = _skill(tmp_path, "bar", "name: bar\ndescription: ready\nmysk:\n  state: active\n", body="# Bar\n")
+    path = _skill(
+        tmp_path,
+        "bar",
+        "name: bar\ndescription: ready\nmysk:\n  state: active\n",
+        body="# Bar\n",
+    )
     before = path.read_text()
     result = _run(monkeypatch, tmp_path)
     assert result.exit_code == 0
@@ -48,7 +58,12 @@ def test_already_compliant_skill_is_left_untouched(monkeypatch, tmp_path):
 
 
 def test_extra_frontmatter_keys_survive_migration(monkeypatch, tmp_path):
-    path = _skill(tmp_path, "setup", "name: setup\ndescription: scaffolds\ndisable-model-invocation: true\n", body="# Setup\n")
+    path = _skill(
+        tmp_path,
+        "setup",
+        "name: setup\ndescription: scaffolds\ndisable-model-invocation: true\n",
+        body="# Setup\n",
+    )
     result = _run(monkeypatch, tmp_path)
     assert result.exit_code == 0
     content = path.read_text()
@@ -57,7 +72,9 @@ def test_extra_frontmatter_keys_survive_migration(monkeypatch, tmp_path):
 
 
 def test_dry_run_writes_nothing_but_reports_the_diff(monkeypatch, tmp_path):
-    path = _skill(tmp_path, "foo", "name: foo\ndescription: does a thing\n", body="# Foo\n")
+    path = _skill(
+        tmp_path, "foo", "name: foo\ndescription: does a thing\n", body="# Foo\n",
+    )
     before = path.read_text()
     result = _run(monkeypatch, tmp_path, extra_args=("--dry-run",))
     assert result.exit_code == 0
@@ -86,7 +103,12 @@ def test_only_selected_skill_is_migrated(monkeypatch, tmp_path):
 
 def test_summary_counts_across_a_mixed_directory(monkeypatch, tmp_path):
     _skill(tmp_path, "fresh", "name: fresh\ndescription: d\n", body="# F\n")
-    _skill(tmp_path, "owned", "name: owned\ndescription: d\nmysk:\n  state: active\n", body="# O\n")
+    _skill(
+        tmp_path,
+        "owned",
+        "name: owned\ndescription: d\nmysk:\n  state: active\n",
+        body="# O\n",
+    )
     result = _run(monkeypatch, tmp_path)
     assert result.exit_code == 0
     assert "migrated 1" in result.output

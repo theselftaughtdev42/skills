@@ -21,22 +21,11 @@ SOURCE_URL = "https://github.com/owner/repo/tree/main/skills/some-skill"
 
 VARIANTS: dict[str, str] = {
     "verbose": (
-        "mysk:\n"
-        "  state: experimental\n"
-        f"  source: {SOURCE_URL}\n"
-        "  modified: true\n"
+        f"mysk:\n  state: experimental\n  source: {SOURCE_URL}\n  modified: true\n"
     ),
-    "abbreviated": (
-        "mysk:\n"
-        "  st: experimental\n"
-        f"  src: {SOURCE_URL}\n"
-        "  mod: true\n"
-    ),
+    "abbreviated": (f"mysk:\n  st: experimental\n  src: {SOURCE_URL}\n  mod: true\n"),
     "hybrid": (
-        "mysk:\n"
-        "  state: experimental\n"
-        f"  src: {SOURCE_URL}\n"
-        "  modified: true\n"
+        f"mysk:\n  state: experimental\n  src: {SOURCE_URL}\n  modified: true\n"
     ),
 }
 
