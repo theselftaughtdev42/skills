@@ -73,7 +73,10 @@ def test_extra_frontmatter_keys_survive_migration(monkeypatch, tmp_path):
 
 def test_dry_run_writes_nothing_but_reports_the_diff(monkeypatch, tmp_path):
     path = _skill(
-        tmp_path, "foo", "name: foo\ndescription: does a thing\n", body="# Foo\n",
+        tmp_path,
+        "foo",
+        "name: foo\ndescription: does a thing\n",
+        body="# Foo\n",
     )
     before = path.read_text()
     result = _run(monkeypatch, tmp_path, extra_args=("--dry-run",))
