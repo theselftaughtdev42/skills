@@ -4,9 +4,9 @@ import difflib
 from collections.abc import Callable
 from pathlib import Path
 
-import pydantic
 import questionary
 import typer
+from pydantic import BaseModel, ConfigDict, Field
 
 from mysk.domain import LifecycleState
 from mysk.io import frontmatter
@@ -15,7 +15,7 @@ from mysk.io.source_repo import find_source_repo
 Select = Callable[[list[Path]], list[Path]]
 
 
-class MigrationSummary(pydantic.BaseModel):
+class MigrationSummary(BaseModel):
     """Outcome of a migration run.
 
     ``upgraded`` are the skills that gained (or, under dry-run, would gain) a
@@ -24,12 +24,12 @@ class MigrationSummary(pydantic.BaseModel):
     diff for each upgraded skill, so a dry-run can show exactly what would change.
     """
 
-    model_config = pydantic.ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True)
 
-    upgraded: list[Path] = pydantic.Field(default_factory=list)
-    already_compliant: list[Path] = pydantic.Field(default_factory=list)
-    skipped: list[Path] = pydantic.Field(default_factory=list)
-    diffs: dict[Path, str] = pydantic.Field(default_factory=dict)
+    upgraded: list[Path] = Field(default_factory=list)
+    already_compliant: list[Path] = Field(default_factory=list)
+    skipped: list[Path] = Field(default_factory=list)
+    diffs: dict[Path, str] = Field(default_factory=dict)
 
 
 def migrate_skills(
