@@ -12,6 +12,7 @@ repos:
         name: Pyrefly
         pass_filenames: false
         language: system
+        entry: uv run pyrefly check
         args: [src/mysk]
   - repo: local
     hooks:

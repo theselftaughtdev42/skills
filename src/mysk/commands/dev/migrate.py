@@ -8,6 +8,7 @@ import questionary
 import typer
 from pydantic import BaseModel, ConfigDict, Field
 from rich import print as rprint
+from rich.markup import escape
 
 from mysk.domain import LifecycleState
 from mysk.io import frontmatter
@@ -88,6 +89,17 @@ def _diff(path: Path, before: str, after: str) -> str:
     )
 
 
+def _print_diff(diff: str) -> None:
+    for line in diff.splitlines(keepends=True):
+        safe = escape(line)
+        if line.startswith("+") and not line.startswith("+++"):
+            rprint(f"[green]{safe}[/green]", end="")
+        elif line.startswith("-") and not line.startswith("---"):
+            rprint(f"[red]{safe}[/red]", end="")
+        else:
+            rprint(f"[dim]{safe}[/dim]", end="")
+
+
 def _is_unmigrated(path: Path) -> bool:
     data, _ = frontmatter.read(path.read_text())
     return "mysk" not in data
@@ -101,6 +113,10 @@ def _prompt_for_skills(unmigrated: list[Path]) -> list[Path]:
         choices=[questionary.Choice(title=p.parent.name, value=p) for p in unmigrated],
     ).ask()
     return chosen or []
+
+
+def _names(paths: list[Path]) -> str:
+    return ", ".join(escape(p.parent.name) for p in paths)
 
 
 def dev_migrate(
@@ -124,12 +140,25 @@ def dev_migrate(
     summary = migrate_skills(repo / "skills", _prompt_for_skills, dry_run=dry_run)
 
     if dry_run:
+        rprint("[bold yellow]Dry run — no files will be modified[/bold yellow]")
         for path in summary.upgraded:
-            print(summary.diffs[path], end="")
+            rprint(f"\n[bold]{escape(path.parent.name)}[/bold]")
+            _print_diff(summary.diffs[path])
 
-    verb = "would migrate" if dry_run else "migrated"
-    print(
-        f"{verb} {len(summary.upgraded)} · "
-        f"already compliant {len(summary.already_compliant)} · "
-        f"skipped {len(summary.skipped)}"
+    verb = "Would migrate" if dry_run else "Migrated"
+
+    def _label(text: str, names: list[Path]) -> str:
+        return text if not names else f"{text}: {_names(names)}."
+
+    upgraded_label = _label(
+        f"[green]{verb} {len(summary.upgraded)}[/green]",
+        summary.upgraded,
     )
+    skipped_label = _label(
+        f"[yellow]Skipped {len(summary.skipped)}[/yellow]",
+        summary.skipped,
+    )
+
+    rprint("\n[bold underline]Migration Summary[/bold underline]")
+    rprint(f"  {upgraded_label}")
+    rprint(f"  {skipped_label}")
