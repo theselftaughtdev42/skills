@@ -1,13 +1,13 @@
-from __future__ import annotations
+from typing import Self
 
-import pydantic
+from pydantic import BaseModel, ConfigDict
 
 from mysk.domain.lifecycle import LifecycleState
 from mysk.domain.mysk_block import MyskBlock
 from mysk.domain.provenance import Provenance
 
 
-class Skill(pydantic.BaseModel):
+class Skill(BaseModel):
     """A skill: generic identity, plus an optional mysk block when owned.
 
     `name`/`description` are generic frontmatter any agent reads. `mysk` is
@@ -15,14 +15,14 @@ class Skill(pydantic.BaseModel):
     management; an un-migrated skill carries no block (`mysk is None`).
     """
 
-    model_config = pydantic.ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True)
 
     name: str
     description: str
     mysk: MyskBlock | None = None
 
     @classmethod
-    def from_frontmatter(cls, data: dict) -> Skill:
+    def from_frontmatter(cls, data: dict) -> Self:
         """Build a Skill from a parsed frontmatter dict (inverse of to_frontmatter).
 
         A skill with no `mysk` key is un-migrated and gets `mysk=None`. When the

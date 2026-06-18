@@ -1,16 +1,14 @@
-from __future__ import annotations
-
-import pydantic
+from pydantic import BaseModel, ConfigDict
 
 
-class Provenance(pydantic.BaseModel):
+class Provenance(BaseModel):
     """Whether a skill is self-authored or imported from an external source.
 
     A `source` URL marks the skill as imported; `modified` tracks whether the
     local copy has drifted from upstream. Self-authored skills carry neither.
     """
 
-    model_config = pydantic.ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True)
 
     source: str | None = None
     modified: bool = False
