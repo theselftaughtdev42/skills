@@ -1,6 +1,8 @@
 ---
 name: to-requirements
 description: Turn the current conversation context into a requirements document and publish it to a file. Use when user wants to create requirements from the current context.
+mysk:
+  state: init
 ---
 
 This skill takes the current conversation context and codebase understanding and produces a PRD. Do NOT interview the user — just synthesize what you already know.

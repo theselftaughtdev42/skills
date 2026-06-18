@@ -27,12 +27,27 @@ def write(data: dict, body: str) -> str:
 
     Inverse of `read`: `read(write(data, body))` returns the same data and body.
     Key order is preserved and long values (e.g. source URLs) are never wrapped.
+    String values are normalized (trailing whitespace stripped) so that YAML
+    encoding artefacts like folded-scalar trailing newlines don't produce ugly
+    quoted scalars in the output.
     """
     rendered = yaml.safe_dump(
-        data,
+        _normalize(data),
         sort_keys=False,
         allow_unicode=True,
         default_flow_style=False,
         width=10**9,
     )
     return f"{_FENCE}\n{rendered}{_FENCE}\n{body}"
+
+
+def _normalize(data: dict) -> dict:
+    result = {}
+    for k, v in data.items():
+        if isinstance(v, str):
+            result[k] = v.rstrip()
+        elif isinstance(v, dict):
+            result[k] = _normalize(v)
+        else:
+            result[k] = v
+    return result
