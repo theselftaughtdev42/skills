@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import Self
 
 from pydantic import BaseModel, ConfigDict
 
@@ -22,7 +22,7 @@ class Skill(BaseModel):
     mysk: MyskBlock | None = None
 
     @classmethod
-    def from_frontmatter(cls, data: dict) -> Skill:
+    def from_frontmatter(cls, data: dict) -> Self:
         """Build a Skill from a parsed frontmatter dict (inverse of to_frontmatter).
 
         A skill with no `mysk` key is un-migrated and gets `mysk=None`. When the
