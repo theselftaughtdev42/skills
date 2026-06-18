@@ -109,7 +109,7 @@ def _prompt_for_skills(unmigrated: list[Path]) -> list[Path]:
     if not unmigrated:
         return []
     chosen = questionary.checkbox(
-        "Select skills to migrate (state: init):",
+        "Select skills to migrate:\n",
         choices=[questionary.Choice(title=p.parent.name, value=p) for p in unmigrated],
     ).ask()
     return chosen or []
@@ -138,6 +138,10 @@ def dev_migrate(
         raise typer.Exit(1)
 
     summary = migrate_skills(repo / "skills", _prompt_for_skills, dry_run=dry_run)
+
+    if len(summary.upgraded) == 0 and len(summary.skipped) == 0:
+        rprint("[bold]All skills are up-to-date. No migration necessary[/bold]")
+        raise typer.Exit(0)
 
     if dry_run:
         rprint("[bold yellow]Dry run — no files will be modified[/bold yellow]")

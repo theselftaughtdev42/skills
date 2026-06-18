@@ -115,3 +115,15 @@ def test_summary_counts_across_a_mixed_directory(monkeypatch, tmp_path):
     result = _run(monkeypatch, tmp_path)
     assert result.exit_code == 0
     assert "Migrated 1" in result.output
+
+
+def test_all_skills_migrated_no_migration_happens(monkeypatch, tmp_path):
+    _skill(
+        tmp_path,
+        "owned",
+        "name: owned\ndescription: d\nmysk:\n  state: active\n",
+        body="# O\n",
+    )
+    result = _run(monkeypatch, tmp_path)
+    assert result.exit_code == 0
+    assert "All skills are up-to-date" in result.output
