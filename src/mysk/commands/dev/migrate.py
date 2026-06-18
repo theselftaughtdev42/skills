@@ -1,10 +1,13 @@
 import difflib
+import sys
 from collections.abc import Callable
 from pathlib import Path
+from typing import Annotated
 
 import questionary
 import typer
 from pydantic import BaseModel, ConfigDict, Field
+from rich import print as rprint
 
 from mysk.domain import LifecycleState
 from mysk.io import frontmatter
@@ -101,17 +104,20 @@ def _prompt_for_skills(unmigrated: list[Path]) -> list[Path]:
 
 
 def dev_migrate(
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Show what would change without writing any files."
-    ),
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run",
+            help="Show what would change without writing any files.",
+        ),
+    ] = False,
 ) -> None:
     """Adopt unmigrated skills into mysk by adding a `mysk` block at state init."""
     repo = find_source_repo()
     if repo is None:
-        typer.secho(
-            "mysk dev migrate must be run from inside the mysk source repo.",
-            fg=typer.colors.RED,
-            err=True,
+        rprint(
+            "[red]mysk dev migrate must be run from inside the mysk source repo.[/red]",
+            file=sys.stderr,
         )
         raise typer.Exit(1)
 
@@ -119,10 +125,10 @@ def dev_migrate(
 
     if dry_run:
         for path in summary.upgraded:
-            typer.echo(summary.diffs[path])
+            print(summary.diffs[path], end="")
 
     verb = "would migrate" if dry_run else "migrated"
-    typer.echo(
+    print(
         f"{verb} {len(summary.upgraded)} · "
         f"already compliant {len(summary.already_compliant)} · "
         f"skipped {len(summary.skipped)}"
