@@ -30,10 +30,16 @@ def _is_migrated(path: Path) -> bool:
     return "mysk" in data
 
 
+def _choice_title(path: Path) -> str:
+    data, _ = frontmatter.read(path.read_text())
+    state = data.get("mysk", {}).get("state", "unknown")
+    return f"{path.parent.name} ({state})"
+
+
 def _prompt_for_skills(skills: list[Path]) -> list[Path]:
     chosen = questionary.checkbox(
         "Select skills to mark:\n",
-        choices=[questionary.Choice(title=p.parent.name, value=p) for p in skills],
+        choices=[questionary.Choice(title=_choice_title(p), value=p) for p in skills],
     ).ask()
     return chosen or []
 

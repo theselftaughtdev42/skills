@@ -74,6 +74,15 @@ def test_noninteractive_errors_for_unmigrated_skill(monkeypatch, tmp_path):
     assert "not a migrated skill" in result.output.lower()
 
 
+def test_skill_choice_title_includes_current_state(tmp_path):
+    path = _skill(
+        tmp_path,
+        "foo",
+        "name: foo\ndescription: d\nmysk:\n  state: experimental\n",
+    )
+    assert mark._choice_title(path) == "foo (experimental)"
+
+
 def test_interactive_marks_multiple_skills_with_same_state(monkeypatch, tmp_path):
     foo = _skill(tmp_path, "foo", "name: foo\ndescription: d\nmysk:\n  state: init\n")
     bar = _skill(tmp_path, "bar", "name: bar\ndescription: d\nmysk:\n  state: init\n")
