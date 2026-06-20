@@ -13,7 +13,7 @@ The CLI tool (short for my-skills) that manages the skill lifecycle: list, deplo
 _Avoid_: skills.py, the tool, the script
 
 **Deploy**:
-The act of symlinking each active skill from the local repository into every applicable Deployment Target. Covers both initial installation and refresh — there is no separate "update" operation.
+The act of symlinking every skill from the local repository into each selected Deployment Target, regardless of lifecycle state. Covers both initial installation and refresh — there is no separate "update" operation. Deprecated skills are linked with a warning.
 _Avoid_: install, publish, sync
 
 **Deployment Target**:
@@ -21,7 +21,7 @@ An agent-specific directory on the local machine that receives symlinked skills 
 _Avoid_: destination, output directory
 
 **Init**:
-A lifecycle state indicating a skill is owned by `mysk` (it has a `mysk` block) but is not yet ready to deploy — typically a freshly scaffolded skill still being written. Init skills are skipped during deploy.
+A lifecycle state indicating a skill is owned by `mysk` (it has a `mysk` block) but is not yet ready to deploy — typically a freshly scaffolded skill still being written. Init skills are deployed like any other; the state is surfaced in the deploy summary so the author is aware.
 _Avoid_: new, scaffold, draft
 
 **Active**:
@@ -33,7 +33,7 @@ A lifecycle state indicating a skill is under active evaluation. It may be self-
 _Avoid_: draft, WIP, beta
 
 **Deprecated**:
-A lifecycle state indicating a skill is no longer in use. Deprecated skills are skipped during deploy and can be removed from all Deployment Targets via cleanup.
+A lifecycle state indicating a skill is no longer in use. Deprecated skills are still deployed when selected — the user may not yet have a replacement — but deploy warns on each deprecated skill so the author is aware.
 _Avoid_: removed, disabled, archived
 
 **Provenance**:
