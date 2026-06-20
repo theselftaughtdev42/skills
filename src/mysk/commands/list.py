@@ -5,9 +5,12 @@ from rich import print as rprint
 from rich.console import Console
 from rich.table import Table
 
+from mysk.domain.lifecycle import LifecycleState
 from mysk.io.skills import load_skills
 from mysk.io.source_repo import find_source_repo
 from mysk.io.targets import discover_targets, is_deployed
+
+_HIGHLIGHTED = {LifecycleState.ACTIVE, LifecycleState.EXPERIMENTAL}
 
 
 def list_skills() -> None:
@@ -17,7 +20,8 @@ def list_skills() -> None:
         rprint("[red]Cannot find the mysk source repo.[/red]", file=sys.stderr)
         raise typer.Exit(1)
 
-    skills = load_skills(repo / "skills")
+    results = load_skills(repo / "skills")
+    skills = [r.skill for r in results if r.skill is not None]
     targets = discover_targets()
 
     console = Console()
@@ -30,7 +34,7 @@ def list_skills() -> None:
         state = skill.mysk.state
         deployed_to = [t for t in targets if is_deployed(t, skill)]
         deployed_label = "\n".join(t.label() for t in deployed_to) or "—"
-        if state.is_deployable and deployed_to:
+        if state in _HIGHLIGHTED and deployed_to:
             table.add_row(f"[bold]{skill.name}[/bold]", state.value, deployed_label)
         else:
             table.add_row(

@@ -5,6 +5,7 @@ from typer.testing import CliRunner
 from mysk.cli import app
 from mysk.commands import list as list_cmd
 from mysk.domain import LifecycleState, MyskBlock, Skill
+from mysk.io.skills import SkillLoadResult
 from mysk.io.targets import Target
 
 runner = CliRunner()
@@ -22,10 +23,19 @@ _DEPRECATED_SKILL = Skill(
 _CLAUDE_TARGET = Target(name="claude", path=Path("/home/user/.claude/skills"))
 
 
+def _wrap(skill: Skill) -> SkillLoadResult:
+    return SkillLoadResult(
+        path=Path(f"/repo/skills/{skill.name}/SKILL.md"),
+        skill=skill,
+        schema_error=None,
+        is_unmigrated=False,
+    )
+
+
 def _run(monkeypatch, repo=Path("/fake/repo"), targets=(), skills=(), deployed_fn=None):
     monkeypatch.setattr(list_cmd, "find_source_repo", lambda: repo)
     monkeypatch.setattr(list_cmd, "discover_targets", lambda **_: list(targets))
-    monkeypatch.setattr(list_cmd, "load_skills", lambda _: list(skills))
+    monkeypatch.setattr(list_cmd, "load_skills", lambda _: [_wrap(s) for s in skills])
     if deployed_fn is not None:
         monkeypatch.setattr(list_cmd, "is_deployed", deployed_fn)
     return runner.invoke(app, ["list"])
