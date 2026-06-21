@@ -5,19 +5,26 @@ from typer.testing import CliRunner
 from mysk.cli import app
 from mysk.commands import list as list_cmd
 from mysk.domain import LifecycleState, MyskBlock, Skill
+from mysk.io.skills import SkillLoadResult
 from mysk.io.targets import Target
 
 runner = CliRunner()
 
-_ACTIVE_SKILL = Skill(
-    name="foo",
-    description="d",
-    mysk=MyskBlock(state=LifecycleState.ACTIVE),
+_ACTIVE_SKILL = SkillLoadResult(
+    path=Path("/fake/skills/foo/SKILL.md"),
+    skill=Skill(
+        name="foo", description="d", mysk=MyskBlock(state=LifecycleState.ACTIVE)
+    ),
+    schema_error=None,
+    is_unmigrated=False,
 )
-_DEPRECATED_SKILL = Skill(
-    name="old",
-    description="d",
-    mysk=MyskBlock(state=LifecycleState.DEPRECATED),
+_DEPRECATED_SKILL = SkillLoadResult(
+    path=Path("/fake/skills/old/SKILL.md"),
+    skill=Skill(
+        name="old", description="d", mysk=MyskBlock(state=LifecycleState.DEPRECATED)
+    ),
+    schema_error=None,
+    is_unmigrated=False,
 )
 _CLAUDE_TARGET = Target(name="claude", path=Path("/home/user/.claude/skills"))
 
