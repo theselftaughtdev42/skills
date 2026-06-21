@@ -29,18 +29,25 @@ def list_skills() -> None:
     table.add_column("Status")
     table.add_column("Deployed To")
 
-    for skill in skills:
-        state = skill.mysk.state
-        deployed_to = [t for t in targets if is_deployed(t, skill)]
-        deployed_label = "\n".join(t.label() for t in deployed_to) or "—"
-        if state in _HIGHLIGHTED and deployed_to:
-            table.add_row(f"[bold]{skill.name}[/bold]", state.value, deployed_label)
+    for r in skills:
+        name = r.skill.name if r.skill else r.path.parent.name
+
+        if r.skill is not None and r.skill.mysk is not None:
+            state = r.skill.mysk.state
+            deployed_to = [t for t in targets if is_deployed(t, r.skill)]
+            deployed_label = "\n".join(t.label() for t in deployed_to) or "—"
+            if state in _HIGHLIGHTED and deployed_to:
+                table.add_row(f"[bold]{name}[/bold]", state.value, deployed_label)
+            else:
+                table.add_row(
+                    f"[dim]{name}[/dim]",
+                    f"[dim]{state.value}[/dim]",
+                    f"[dim]{deployed_label}[/dim]",
+                    style="dim",
+                )
         else:
             table.add_row(
-                f"[dim]{skill.name}[/dim]",
-                f"[dim]{state.value}[/dim]",
-                f"[dim]{deployed_label}[/dim]",
-                style="dim",
+                f"[dim]{name}[/dim]", "[dim]—[/dim]", "[dim]—[/dim]", style="dim"
             )
 
     console.print(table)
