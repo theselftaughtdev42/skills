@@ -75,6 +75,125 @@ def _run(
     return runner.invoke(app, ["deploy", *extra_args])
 
 
+def test_agents_flag_targets_named_agents_without_showing_target_prompt(monkeypatch):
+    prompted = []
+
+    def checkbox(message, choices):
+        prompted.append(message)
+        return SimpleNamespace(ask=lambda: [_ACTIVE_SKILL])
+
+    stub = SimpleNamespace(checkbox=checkbox, Choice=lambda title, value=None: value)
+
+    result = _run(
+        monkeypatch,
+        targets=[_CLAUDE_TARGET, _CURSOR_TARGET],
+        skills=[_ACTIVE_SKILL],
+        questionary_stub=stub,
+        reconcile_fn=lambda s, t, overwrite: ReconcileResult(outcome="deployed"),
+        extra_args=["--agents", "claude"],
+    )
+
+    assert result.exit_code == 0
+    assert not any("target" in m.lower() for m in prompted)
+    assert "claude" in result.output
+    assert "cursor" not in result.output
+
+
+def test_skills_flag_deploys_named_skills_without_showing_skill_prompt(monkeypatch):
+    prompted = []
+
+    def checkbox(message, choices):
+        prompted.append(message)
+        return SimpleNamespace(ask=lambda: [_CLAUDE_TARGET])
+
+    stub = SimpleNamespace(checkbox=checkbox, Choice=lambda title, value=None: value)
+    deployed = []
+
+    def reconcile(source_dir, target_path, overwrite):
+        deployed.append(target_path.name)
+        return ReconcileResult(outcome="deployed")
+
+    result = _run(
+        monkeypatch,
+        targets=[_CLAUDE_TARGET],
+        skills=[_ACTIVE_SKILL, _EXPERIMENTAL_SKILL],
+        questionary_stub=stub,
+        reconcile_fn=reconcile,
+        extra_args=["--skills", "foo"],
+    )
+
+    assert result.exit_code == 0
+    assert not any("skill" in m.lower() for m in prompted)
+    assert deployed == ["foo"]
+
+
+def test_skills_all_flag_deploys_every_deployable_skill_without_showing_skill_prompt(
+    monkeypatch,
+):
+    prompted = []
+
+    def checkbox(message, choices):
+        prompted.append(message)
+        return SimpleNamespace(ask=lambda: [_CLAUDE_TARGET])
+
+    stub = SimpleNamespace(checkbox=checkbox, Choice=lambda title, value=None: value)
+    deployed = []
+
+    def reconcile(source_dir, target_path, overwrite):
+        deployed.append(target_path.name)
+        return ReconcileResult(outcome="deployed")
+
+    result = _run(
+        monkeypatch,
+        targets=[_CLAUDE_TARGET],
+        skills=[_ACTIVE_SKILL, _EXPERIMENTAL_SKILL],
+        questionary_stub=stub,
+        reconcile_fn=reconcile,
+        extra_args=["--skills-all"],
+    )
+
+    assert result.exit_code == 0
+    assert not any("skill" in m.lower() for m in prompted)
+    assert sorted(deployed) == ["bar", "foo"]
+
+
+def test_skills_all_and_skills_flags_together_exit_with_error(monkeypatch):
+    result = _run(
+        monkeypatch,
+        targets=[_CLAUDE_TARGET],
+        skills=[_ACTIVE_SKILL],
+        extra_args=["--skills-all", "--skills", "foo"],
+    )
+
+    assert result.exit_code == 1
+    assert "Cannot combine --skills-all with --skills" in result.output
+
+
+def test_unknown_agent_name_in_agents_flag_exits_with_error(monkeypatch):
+    result = _run(
+        monkeypatch,
+        targets=[_CLAUDE_TARGET],
+        skills=[_ACTIVE_SKILL],
+        extra_args=["--agents", "claude,nonexistent"],
+    )
+
+    assert result.exit_code == 1
+    assert "nonexistent" in result.output
+
+
+def test_unknown_skill_name_in_skills_flag_exits_with_error(monkeypatch):
+    result = _run(
+        monkeypatch,
+        targets=[_CLAUDE_TARGET],
+        skills=[_ACTIVE_SKILL],
+        questionary_stub=_make_questionary(target_answer=[_CLAUDE_TARGET]),
+        extra_args=["--skills", "foo,ghost"],
+    )
+
+    assert result.exit_code == 1
+    assert "ghost" in result.output
+
+
 def test_all_skills_with_mysk_block_appear_in_skill_prompt_as_name_state(monkeypatch):
     captured_choices = {}
     answers = iter([[_CLAUDE_TARGET], []])
