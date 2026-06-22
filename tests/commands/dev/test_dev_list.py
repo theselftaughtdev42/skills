@@ -25,7 +25,7 @@ def test_empty_skills_directory_shows_empty_state(monkeypatch, tmp_path):
     (tmp_path / "skills").mkdir()
     result = _run(monkeypatch, tmp_path)
     assert result.exit_code == 0
-    assert "no skills found" in result.output.lower()
+    assert "no skills" in result.output.lower()
 
 
 def test_skill_name_appears_in_output(monkeypatch, tmp_path):

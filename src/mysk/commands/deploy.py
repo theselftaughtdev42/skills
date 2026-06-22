@@ -2,6 +2,7 @@ from pathlib import Path
 
 import questionary
 import typer
+from rich import print as rprint
 
 from mysk.io.deploy import reconcile_skill
 from mysk.io.skills import load_skills, skill_library
@@ -68,7 +69,7 @@ def deploy(
     deployable = [r for r in all_skills if r.skill and r.skill.mysk]
 
     if not deployable:
-        print("No skills in the Skill Library to deploy.")
+        rprint("[dim]No skills in the Skill Library to deploy.")
         raise typer.Exit(0)
 
     if skills_all:

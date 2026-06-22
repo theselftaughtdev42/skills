@@ -19,7 +19,7 @@ def dev_list() -> None:
     results = load_skills(skill_library())
 
     if not results:
-        rprint("[dim]No skills found in skills/.[/dim]")
+        rprint("[dim]No skills in the Skill Library.[/dim]")
         return
 
     table = Table(show_header=True, header_style="bold")
