@@ -16,3 +16,9 @@ We chose verbose keys because a token spike using `tiktoken` showed abbreviation
 - The `mysk:` block is optional: a skill with no block has yet to be migrated and is not owned (ADR-0001). The domain layer never fabricates a block or a default `state` — adopting a skill is the `migrate` command's job.
 - When the block *is* present it must carry an explicit `state` (one of `active`, `init`, `experimental`, `deprecated`). A present-but-stateless block is malformed: `from_frontmatter` raises.
 - Adding a future lifecycle state means adding a `state` value, not a new key.
+
+## Amendment (2026-06-22): `upstream_name` key
+
+A fourth key, `upstream_name`, is added for skills imported with `--rename`. When present it records the skill's original name in the upstream source, allowing Refresh to locate the correct upstream directory even though the local name differs.
+
+`upstream_name` is optional and only meaningful on imported skills (those that also carry `source`). It is absent on self-authored skills and on imports where no rename occurred. It is intentionally separate from `modified`: `modified` signals content drift, `upstream_name` signals name drift. A renamed skill with unchanged content correctly has `modified: false` and a non-null `upstream_name`.
