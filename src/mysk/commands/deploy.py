@@ -1,4 +1,3 @@
-import sys
 from pathlib import Path
 
 import questionary
@@ -6,8 +5,7 @@ import typer
 from rich import print as rprint
 
 from mysk.io.deploy import reconcile_skill
-from mysk.io.skills import load_skills
-from mysk.io.source_repo import find_source_repo
+from mysk.io.skills import load_skills, skill_library
 from mysk.io.targets import discover_targets
 
 
@@ -47,11 +45,6 @@ def deploy(
         print("Cannot combine --skills-all with --skills.")
         raise typer.Exit(1)
 
-    repo = find_source_repo()
-    if repo is None:
-        rprint("[red]Cannot find the mysk source repo.[/red]", file=sys.stderr)
-        raise typer.Exit(1)
-
     targets = discover_targets()
 
     if agents is not None:
@@ -72,8 +65,12 @@ def deploy(
         print("Nothing selected.")
         raise typer.Exit(0)
 
-    all_skills = load_skills(repo / "skills")
+    all_skills = load_skills(skill_library())
     deployable = [r for r in all_skills if r.skill and r.skill.mysk]
+
+    if not deployable:
+        rprint("[dim]No skills in the Skill Library to deploy.")
+        raise typer.Exit(0)
 
     if skills_all:
         selected_skills = deployable

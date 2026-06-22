@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from mysk.io.skills import load_skills
+from mysk.io import skills as skills_mod
+from mysk.io.skills import load_skills, skill_library
 
 
 def _skill(root: Path, name: str, frontmatter_lines: str, body: str = "") -> Path:
@@ -58,6 +59,31 @@ def test_results_are_sorted_alphabetically(tmp_path):
     results = load_skills(tmp_path)
     names = [r.path.parent.name for r in results]
     assert names == ["alpha", "mango", "zebra"]
+
+
+def test_skill_library_defaults_to_platformdirs_data_dir(monkeypatch, tmp_path):
+    monkeypatch.delenv("MYSK_SKILLS_DIR", raising=False)
+    monkeypatch.setattr(skills_mod, "user_data_dir", lambda app: str(tmp_path / app))
+    assert skill_library() == tmp_path / "mysk" / "skills"
+
+
+def test_skill_library_env_override_takes_precedence(monkeypatch, tmp_path):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path / "custom"))
+    assert skill_library() == tmp_path / "custom"
+
+
+def test_skill_library_env_override_expands_user(monkeypatch, tmp_path):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("MYSK_SKILLS_DIR", "~/my-skills")
+    assert skill_library() == tmp_path / "my-skills"
+
+
+def test_skill_library_creates_directory_when_absent(monkeypatch, tmp_path):
+    target = tmp_path / "nested" / "skills"
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(target))
+    assert not target.exists()
+    assert skill_library() == target
+    assert target.is_dir()
 
 
 def test_imported_skill_carries_provenance(tmp_path):

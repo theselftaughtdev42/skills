@@ -1,9 +1,26 @@
+import os
 from pathlib import Path
 
+from platformdirs import user_data_dir
 from pydantic import BaseModel, ConfigDict
 
 from mysk.domain.skill import Skill
 from mysk.io import frontmatter
+
+
+def skill_library() -> Path:
+    """Resolve the Skill Library directory, creating it if absent.
+
+    Returns ``platformdirs.user_data_dir("mysk") / "skills"`` by default, or the
+    ``MYSK_SKILLS_DIR`` path when that environment variable is set.
+    """
+    override = os.environ.get("MYSK_SKILLS_DIR")
+    if override:
+        library = Path(override).expanduser()
+    else:
+        library = Path(user_data_dir("mysk")) / "skills"
+    library.mkdir(parents=True, exist_ok=True)
+    return library
 
 
 class SkillLoadResult(BaseModel):

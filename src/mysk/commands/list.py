@@ -1,13 +1,9 @@
-import sys
-
-import typer
 from rich import print as rprint
 from rich.console import Console
 from rich.table import Table
 
 from mysk.domain.lifecycle import LifecycleState
-from mysk.io.skills import load_skills
-from mysk.io.source_repo import find_source_repo
+from mysk.io.skills import load_skills, skill_library
 from mysk.io.targets import discover_targets, is_deployed
 
 _HIGHLIGHTED = {LifecycleState.ACTIVE, LifecycleState.EXPERIMENTAL}
@@ -15,12 +11,7 @@ _HIGHLIGHTED = {LifecycleState.ACTIVE, LifecycleState.EXPERIMENTAL}
 
 def list_skills() -> None:
     """List all skills and where they are deployed."""
-    repo = find_source_repo()
-    if repo is None:
-        rprint("[red]Cannot find the mysk source repo.[/red]", file=sys.stderr)
-        raise typer.Exit(1)
-
-    skills = load_skills(repo / "skills")
+    skills = load_skills(skill_library())
     targets = discover_targets()
 
     console = Console()
