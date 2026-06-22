@@ -9,7 +9,7 @@ from rich.markup import escape
 
 from mysk.domain import LifecycleState
 from mysk.io import frontmatter
-from mysk.io.source_repo import find_source_repo
+from mysk.io.skills import skill_library
 
 _SELECTABLE_STATES = [
     LifecycleState.ACTIVE,
@@ -65,15 +65,7 @@ def dev_mark(
     ] = None,
 ) -> None:
     """Interactively set the lifecycle state of a skill."""
-    repo = find_source_repo()
-    if repo is None:
-        rprint(
-            "[red]mysk dev mark must be run from inside the mysk source repo.[/red]",
-            file=sys.stderr,
-        )
-        raise typer.Exit(1)
-
-    skills_root = repo / "skills"
+    skills_root = skill_library()
     migrated = sorted(p for p in skills_root.glob("*/SKILL.md") if _is_migrated(p))
 
     if skill_name is not None and status is not None:

@@ -1,14 +1,10 @@
-import sys
-
-import typer
 from rich import print as rprint
 from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
 
 from mysk.domain.lifecycle import LifecycleState
-from mysk.io.skills import load_skills
-from mysk.io.source_repo import find_source_repo
+from mysk.io.skills import load_skills, skill_library
 
 _STATUS_STYLE: dict[LifecycleState, str] = {
     LifecycleState.ACTIVE: "[green]active[/green]",
@@ -20,15 +16,7 @@ _STATUS_STYLE: dict[LifecycleState, str] = {
 
 def dev_list() -> None:
     """Report lifecycle state, provenance, and schema compliance for every skill."""
-    repo = find_source_repo()
-    if repo is None:
-        rprint(
-            "[red]mysk dev list must be run from inside the mysk source repo.[/red]",
-            file=sys.stderr,
-        )
-        raise typer.Exit(1)
-
-    results = load_skills(repo / "skills")
+    results = load_skills(skill_library())
 
     if not results:
         rprint("[dim]No skills found in skills/.[/dim]")

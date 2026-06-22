@@ -18,7 +18,7 @@ def _skill(root: Path, name: str, frontmatter_lines: str, body: str = "") -> Pat
 
 
 def _run(monkeypatch, repo: Path, extra_args=(), prompt_skills=None, prompt_state=None):
-    monkeypatch.setattr(mark, "find_source_repo", lambda: repo)
+    monkeypatch.setattr(mark, "skill_library", lambda: repo / "skills")
     if prompt_skills is not None:
         monkeypatch.setattr(mark, "_prompt_for_skills", prompt_skills)
     if prompt_state is not None:
@@ -46,13 +46,6 @@ def test_set_lifecycle_active_writes_state_active(tmp_path):
     )
     mark.set_skill_lifecycle(path, LifecycleState.ACTIVE)
     assert "state: active" in path.read_text()
-
-
-def test_errors_when_run_outside_source_repo(monkeypatch):
-    monkeypatch.setattr(mark, "find_source_repo", lambda: None)
-    result = runner.invoke(app, ["dev", "mark"])
-    assert result.exit_code != 0
-    assert "source repo" in result.output.lower()
 
 
 def test_noninteractive_sets_state_by_name_and_status(monkeypatch, tmp_path):

@@ -29,20 +29,13 @@ _DEPRECATED_SKILL = SkillLoadResult(
 _CLAUDE_TARGET = Target(name="claude", path=Path("/home/user/.claude/skills"))
 
 
-def _run(monkeypatch, repo=Path("/fake/repo"), targets=(), skills=(), deployed_fn=None):
-    monkeypatch.setattr(list_cmd, "find_source_repo", lambda: repo)
+def _run(monkeypatch, targets=(), skills=(), deployed_fn=None):
+    monkeypatch.setattr(list_cmd, "skill_library", lambda: Path("/fake/skills"))
     monkeypatch.setattr(list_cmd, "discover_targets", lambda **_: list(targets))
     monkeypatch.setattr(list_cmd, "load_skills", lambda _: list(skills))
     if deployed_fn is not None:
         monkeypatch.setattr(list_cmd, "is_deployed", deployed_fn)
     return runner.invoke(app, ["list"])
-
-
-def test_exits_with_error_when_source_repo_not_found(monkeypatch):
-    result = _run(monkeypatch, repo=None)
-
-    assert result.exit_code != 0
-    assert "source repo" in result.output.lower()
 
 
 def test_deployed_skill_appears_in_table_with_target_label(monkeypatch):

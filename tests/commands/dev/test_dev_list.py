@@ -16,15 +16,9 @@ def _skill(root: Path, name: str, frontmatter_lines: str, body: str = "") -> Pat
     return path
 
 
-def _run(monkeypatch, repo: Path | None):
-    monkeypatch.setattr(dev_list_mod, "find_source_repo", lambda: repo)
+def _run(monkeypatch, repo: Path):
+    monkeypatch.setattr(dev_list_mod, "skill_library", lambda: repo / "skills")
     return runner.invoke(app, ["dev", "list"])
-
-
-def test_errors_when_run_outside_source_repo(monkeypatch):
-    result = _run(monkeypatch, None)
-    assert result.exit_code != 0
-    assert "source repo" in result.output.lower()
 
 
 def test_empty_skills_directory_shows_empty_state(monkeypatch, tmp_path):

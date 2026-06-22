@@ -55,7 +55,6 @@ def _make_questionary(target_answer, skill_answer=None):
 
 def _run(
     monkeypatch,
-    repo=Path("/fake/repo"),
     targets=(),
     skills=(),
     questionary_stub=None,
@@ -63,7 +62,7 @@ def _run(
     extra_args=(),
     suppress_ensure_dir=True,
 ):
-    monkeypatch.setattr(deploy_cmd, "find_source_repo", lambda: repo)
+    monkeypatch.setattr(deploy_cmd, "skill_library", lambda: Path("/fake/skills"))
     monkeypatch.setattr(deploy_cmd, "discover_targets", lambda: list(targets))
     monkeypatch.setattr(deploy_cmd, "load_skills", lambda _: list(skills))
     if suppress_ensure_dir:
