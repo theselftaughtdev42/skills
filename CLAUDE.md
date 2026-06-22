@@ -2,7 +2,7 @@
 
 ### Issue tracker
 
-Issues live in GitHub Issues for `theselftaughtdev42/my-skills`. See `docs/agents/issue-tracker.md`.
+Issues live in GitHub Issues for `theselftaughtdev42/mysk`. See `docs/agents/issue-tracker.md`.
 
 ### Domain docs
 
