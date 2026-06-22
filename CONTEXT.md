@@ -1,4 +1,4 @@
-# my-skills
+# mysk
 
 A personal collection of agent skills — self-authored or imported — managed and deployed to AI agents via the `mysk` CLI.
 
@@ -9,7 +9,7 @@ A directory containing a `SKILL.md` entry point and any supporting files. The di
 _Avoid_: plugin, module, script
 
 **mysk**:
-The CLI tool (short for my-skills) that manages the skill lifecycle: list, deploy, mark experimental, deprecate, and clean up.
+The CLI tool and package name for this project. Manages the skill lifecycle: list, deploy, mark experimental, deprecate, and clean up.
 _Avoid_: skills.py, the tool, the script
 
 **Deploy**:
