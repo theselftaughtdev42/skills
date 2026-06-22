@@ -48,6 +48,15 @@ def test_set_lifecycle_active_writes_state_active(tmp_path):
     assert "state: active" in path.read_text()
 
 
+def test_interactive_with_no_skills_exits_cleanly_without_prompting(
+    monkeypatch, tmp_path
+):
+    (tmp_path / "skills").mkdir()
+    result = _run(monkeypatch, tmp_path)
+    assert result.exit_code == 0
+    assert "no skills" in result.output.lower()
+
+
 def test_noninteractive_sets_state_by_name_and_status(monkeypatch, tmp_path):
     path = _skill(
         tmp_path,

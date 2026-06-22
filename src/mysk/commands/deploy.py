@@ -67,6 +67,10 @@ def deploy(
     all_skills = load_skills(skill_library())
     deployable = [r for r in all_skills if r.skill and r.skill.mysk]
 
+    if not deployable:
+        print("No skills in the Skill Library to deploy.")
+        raise typer.Exit(0)
+
     if skills_all:
         selected_skills = deployable
     elif skills is not None:

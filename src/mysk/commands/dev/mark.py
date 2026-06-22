@@ -85,6 +85,10 @@ def dev_mark(
         rprint(f"[green]Marked {escape(skill_name)} as {state.value}.[/green]")
         return
 
+    if not migrated:
+        rprint("[dim]No skills in the Skill Library to mark.[/dim]")
+        raise typer.Exit(0)
+
     selected = _prompt_for_skills(migrated)
     if not selected:
         raise typer.Exit(0)

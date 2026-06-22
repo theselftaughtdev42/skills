@@ -74,6 +74,18 @@ def _run(
     return runner.invoke(app, ["deploy", *extra_args])
 
 
+def test_empty_library_exits_cleanly_without_skill_prompt(monkeypatch):
+    result = _run(
+        monkeypatch,
+        targets=[_CLAUDE_TARGET],
+        skills=[],
+        extra_args=["--agents", "claude"],
+    )
+
+    assert result.exit_code == 0
+    assert "no skills" in result.output.lower()
+
+
 def test_agents_flag_targets_named_agents_without_showing_target_prompt(monkeypatch):
     prompted = []
 
