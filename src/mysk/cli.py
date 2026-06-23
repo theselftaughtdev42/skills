@@ -1,6 +1,6 @@
 import typer
 
-from mysk.commands import deploy, init
+from mysk.commands import deploy, import_skill, init
 from mysk.commands import list as list_cmd
 from mysk.commands.dev import app as dev_app
 
@@ -15,4 +15,5 @@ app.add_typer(dev_app, name="dev")
 
 app.command("list")(list_cmd.list_skills)
 app.command("deploy")(deploy.deploy)
+app.command("import")(import_skill.import_skill)
 app.command("init")(init.init)

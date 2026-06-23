@@ -42,6 +42,7 @@ class Skill(BaseModel):
                 provenance=Provenance(
                     source=raw.get("source"),
                     modified=raw.get("modified", False),
+                    upstream_name=raw.get("upstream_name"),
                 ),
             )
         return cls(name=data["name"], description=data["description"], mysk=block)
@@ -56,5 +57,7 @@ class Skill(BaseModel):
             if self.mysk.provenance.is_imported:
                 block["source"] = self.mysk.provenance.source
                 block["modified"] = self.mysk.provenance.modified
+                if self.mysk.provenance.upstream_name is not None:
+                    block["upstream_name"] = self.mysk.provenance.upstream_name
             result["mysk"] = block
         return result

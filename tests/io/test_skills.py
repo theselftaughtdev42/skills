@@ -1,7 +1,9 @@
 from pathlib import Path
 
+import pytest
+
 from mysk.io import skills as skills_mod
-from mysk.io.skills import load_skills, skill_library
+from mysk.io.skills import CollisionError, check_collision, load_skills, skill_library
 
 
 def _skill(root: Path, name: str, frontmatter_lines: str, body: str = "") -> Path:
@@ -118,3 +120,44 @@ def test_modified_imported_skill_carries_modified_flag(tmp_path):
     r = results[0]
     assert r.skill is not None
     assert r.skill.mysk.provenance.modified
+
+
+_SOURCE_A = "https://github.com/alice/repo"
+_SOURCE_B = "https://github.com/bob/repo"
+
+
+def test_collision_same_name_same_source_suggests_refresh(tmp_path):
+    fm = (
+        f"name: my-skill\ndescription: d\nmysk:\n"
+        f"  state: active\n  source: {_SOURCE_A}\n  modified: false\n"
+    )
+    _skill(tmp_path, "my-skill", fm)
+
+    with pytest.raises(CollisionError, match="mysk refresh my-skill"):
+        check_collision(tmp_path, "my-skill", _SOURCE_A)
+
+
+def test_collision_same_name_different_source_suggests_rename(tmp_path):
+    fm = (
+        f"name: my-skill\ndescription: d\nmysk:\n"
+        f"  state: active\n  source: {_SOURCE_B}\n  modified: false\n"
+    )
+    _skill(tmp_path, "my-skill", fm)
+
+    with pytest.raises(CollisionError, match="--rename"):
+        check_collision(tmp_path, "my-skill", _SOURCE_A)
+
+
+def test_collision_self_authored_same_name_suggests_rename(tmp_path):
+    _skill(
+        tmp_path,
+        "my-skill",
+        "name: my-skill\ndescription: d\nmysk:\n  state: active\n",
+    )
+
+    with pytest.raises(CollisionError, match="--rename"):
+        check_collision(tmp_path, "my-skill", _SOURCE_A)
+
+
+def test_no_collision_when_name_is_free(tmp_path):
+    check_collision(tmp_path, "my-skill", _SOURCE_A)  # must not raise

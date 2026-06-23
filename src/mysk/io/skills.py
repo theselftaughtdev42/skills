@@ -63,3 +63,45 @@ def load_skills(skills_root: Path) -> list[SkillLoadResult]:
             )
         )
     return results
+
+
+class CollisionError(Exception):
+    pass
+
+
+def check_collision(library: Path, name: str, source: str) -> None:
+    """Raise CollisionError if *name* already exists in the Skill Library.
+
+    Three cases:
+    - Same name + same source  → suggest ``mysk refresh <name>``
+    - Same name + different source → suggest ``--rename``
+    - Same name + self-authored (no source) → suggest ``--rename``
+    """
+    skill_md = library / name / "SKILL.md"
+    if not skill_md.exists():
+        return
+
+    data, _ = frontmatter.read(skill_md.read_text())
+    try:
+        existing = Skill.from_frontmatter(data)
+    except (ValueError, KeyError) as exc:
+        raise CollisionError(
+            f"A skill named {name!r} already exists in the Skill Library but its "
+            f"frontmatter is malformed. Resolve it manually before importing."
+        ) from exc
+
+    existing_source = (
+        existing.mysk.provenance.source if existing.mysk is not None else None
+    )
+
+    if existing_source == source:
+        raise CollisionError(
+            f"A skill named {name!r} from the same source is already in the Skill "
+            f"Library. To update it run: mysk refresh {name}"
+        )
+
+    raise CollisionError(
+        f"A skill named {name!r} already exists in the Skill Library "
+        f"(source: {existing_source!r}). Re-run with --rename <new-name> to import "
+        f"it under a different local name."
+    )

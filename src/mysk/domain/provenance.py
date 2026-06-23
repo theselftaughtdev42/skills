@@ -12,6 +12,7 @@ class Provenance(BaseModel):
 
     source: str | None = None
     modified: bool = False
+    upstream_name: str | None = None
 
     @property
     def is_imported(self) -> bool:

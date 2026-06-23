@@ -145,6 +145,42 @@ def test_skill_survives_frontmatter_round_trip(skill):
     assert Skill.from_frontmatter(skill.to_frontmatter()) == skill
 
 
+def test_renamed_import_writes_upstream_name():
+    skill = Skill(
+        name="local-name",
+        description="bar",
+        mysk=MyskBlock(
+            state=LifecycleState.ACTIVE,
+            provenance=Provenance(
+                source="https://github.com/a/b",
+                modified=False,
+                upstream_name="original-name",
+            ),
+        ),
+    )
+
+    block = skill.to_frontmatter()["mysk"]
+
+    assert block["upstream_name"] == "original-name"
+
+
+def test_upstream_name_round_trips_through_frontmatter():
+    skill = Skill(
+        name="local-name",
+        description="bar",
+        mysk=MyskBlock(
+            state=LifecycleState.ACTIVE,
+            provenance=Provenance(
+                source="https://github.com/a/b",
+                modified=False,
+                upstream_name="original-name",
+            ),
+        ),
+    )
+
+    assert Skill.from_frontmatter(skill.to_frontmatter()) == skill
+
+
 def test_skill_survives_full_disk_round_trip():
     skill = Skill(
         name="caveman-review",
