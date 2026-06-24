@@ -35,31 +35,41 @@ def import_skill(
     try:
         import_url = ImportUrl.parse(url)
     except ValueError:
-        try:
-            repo_root_url = RepoRootUrl.parse(url)
-        except ValueError as exc:
-            rprint(f"[red]Error:[/red] {exc}")
-            raise typer.Exit(1) from None
+        _import_from_repo_root(url)
+        return
 
-        try:
-            skill_paths = scan_repo_for_skills(repo_root_url)
-        except DownloadError as exc:
-            rprint(f"[red]Error:[/red] {exc}")
-            raise typer.Exit(1) from None
+    _import_single(import_url, url, rename)
 
-        if not skill_paths:
-            rprint("[red]Error:[/red] No skills found in this repository.")
-            raise typer.Exit(1) from None
 
-        selected_path = questionary.select(
-            "Choose a skill to import:", choices=skill_paths
-        ).ask()
-        if selected_path is None:
-            raise typer.Exit(1) from None
+def _import_from_repo_root(url: str) -> None:
+    try:
+        repo_root_url = RepoRootUrl.parse(url)
+    except ValueError as exc:
+        rprint(f"[red]Error:[/red] {exc}")
+        raise typer.Exit(1) from None
 
-        url = repo_root_url.skill_url(selected_path)
-        import_url = ImportUrl.parse(url)
+    try:
+        skill_paths = scan_repo_for_skills(repo_root_url)
+    except DownloadError as exc:
+        rprint(f"[red]Error:[/red] {exc}")
+        raise typer.Exit(1) from None
 
+    if not skill_paths:
+        rprint("[red]Error:[/red] No skills found in this repository.")
+        raise typer.Exit(1)
+
+    selected_paths = questionary.checkbox(
+        "Choose skills to import:", choices=skill_paths
+    ).ask()
+    if not selected_paths:
+        raise typer.Exit(1)
+
+    for path in selected_paths:
+        skill_url = repo_root_url.skill_url(path)
+        _import_single(ImportUrl.parse(skill_url), skill_url, None)
+
+
+def _import_single(import_url: ImportUrl, url: str, rename: str | None) -> None:
     upstream_dir_name = import_url.skill_dir_name
     local_name = rename if rename is not None else upstream_dir_name
 

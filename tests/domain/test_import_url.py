@@ -42,3 +42,15 @@ def test_repo_root_url_rejects_non_github_host():
 def test_repo_root_url_rejects_url_with_path():
     with pytest.raises(ValueError, match="Expected a GitHub repo URL of the form"):
         RepoRootUrl.parse("https://github.com/alice/cool-skills/tree/main/skills/foo")
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://github.com//repo",
+        "https://github.com/owner/",
+    ],
+)
+def test_repo_root_url_rejects_empty_segments(url):
+    with pytest.raises(ValueError, match="Expected a GitHub repo URL of the form"):
+        RepoRootUrl.parse(url)

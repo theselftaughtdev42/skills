@@ -48,6 +48,14 @@ def _mock_select_sequence(answers: list[str], monkeypatch):
     monkeypatch.setattr(import_cmd.questionary, "select", _select)
 
 
+def _mock_checkbox(answers: list[str], monkeypatch):
+    monkeypatch.setattr(
+        import_cmd.questionary,
+        "checkbox",
+        lambda *a, **kw: type("Q", (), {"ask": staticmethod(lambda: answers)})(),
+    )
+
+
 @respx.mock
 def test_import_downloads_skill_and_prompts_for_lifecycle(tmp_path, monkeypatch):
     monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
@@ -147,7 +155,8 @@ def test_import_from_repo_root_no_skills_found_errors(tmp_path, monkeypatch):
 @respx.mock
 def test_import_from_repo_root_picks_skill_and_imports(tmp_path, monkeypatch):
     monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
-    _mock_select_sequence(["my-skill", "active"], monkeypatch)
+    _mock_checkbox(["my-skill"], monkeypatch)
+    _mock_select("active", monkeypatch)
 
     root = RepoRootUrl.parse(_REPO_ROOT_URL)
     tree_payload = {"tree": [{"type": "blob", "path": "my-skill/SKILL.md"}]}
@@ -167,3 +176,46 @@ def test_import_from_repo_root_picks_skill_and_imports(tmp_path, monkeypatch):
     assert "state: active" in text
     assert "modified: false" in text
     assert "my-skill" in text
+
+
+_SKILL_A_MD = "---\nname: skill-a\ndescription: skill a\n---\n# skill-a\n"
+_SKILL_B_MD = "---\nname: skill-b\ndescription: skill b\n---\n# skill-b\n"
+
+
+def _make_multi_tarball(skills: dict[str, str]) -> bytes:
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tar:
+        for dir_name, content in skills.items():
+            data = content.encode()
+            info = tarfile.TarInfo(name=f"repo-abc/{dir_name}/SKILL.md")
+            info.size = len(data)
+            tar.addfile(info, io.BytesIO(data))
+    return buf.getvalue()
+
+
+@respx.mock
+def test_import_from_repo_root_imports_multiple_selected_skills(tmp_path, monkeypatch):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+    _mock_checkbox(["skill-a", "skill-b"], monkeypatch)
+    _mock_select("active", monkeypatch)
+
+    root = RepoRootUrl.parse(_REPO_ROOT_URL)
+    tree_payload = {
+        "tree": [
+            {"type": "blob", "path": "skill-a/SKILL.md"},
+            {"type": "blob", "path": "skill-b/SKILL.md"},
+        ]
+    }
+    respx.get(root.trees_api_url()).mock(
+        return_value=httpx.Response(200, json=tree_payload)
+    )
+    tarball = _make_multi_tarball({"skill-a": _SKILL_A_MD, "skill-b": _SKILL_B_MD})
+    respx.get(_REPO_ROOT_TARBALL_URL).mock(
+        return_value=httpx.Response(200, content=tarball)
+    )
+
+    result = runner.invoke(app, ["import", _REPO_ROOT_URL])
+
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / "skill-a" / "SKILL.md").exists()
+    assert (tmp_path / "skill-b" / "SKILL.md").exists()

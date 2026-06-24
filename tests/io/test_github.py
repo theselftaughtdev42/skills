@@ -36,6 +36,16 @@ _ROOT_URL = RepoRootUrl.parse("https://github.com/alice/cool-skills")
 
 
 @respx.mock
+def test_scan_repo_for_skills_raises_on_truncated_response():
+    respx.get(_ROOT_URL.trees_api_url()).mock(
+        return_value=httpx.Response(200, json={"truncated": True, "tree": []})
+    )
+
+    with pytest.raises(DownloadError, match="truncated"):
+        scan_repo_for_skills(_ROOT_URL)
+
+
+@respx.mock
 def test_scan_repo_for_skills_returns_skill_dirs():
     tree_payload = {
         "tree": [

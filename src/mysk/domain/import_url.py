@@ -19,7 +19,7 @@ class RepoRootUrl(BaseModel):
                 f"got: {parsed.hostname!r}"
             )
         parts = parsed.path.strip("/").split("/")
-        if len(parts) != 2:
+        if len(parts) != 2 or not all(parts):
             raise ValueError(
                 f"Expected a GitHub repo URL of the form "
                 f"https://github.com/{{owner}}/{{repo}}, got: {raw!r}"
