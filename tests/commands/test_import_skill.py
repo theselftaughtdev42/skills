@@ -48,6 +48,14 @@ def _mock_select_sequence(answers: list[str], monkeypatch):
     monkeypatch.setattr(import_cmd.questionary, "select", _select)
 
 
+def _mock_text(answer: str, monkeypatch):
+    monkeypatch.setattr(
+        import_cmd.questionary,
+        "text",
+        lambda *a, **kw: type("Q", (), {"ask": staticmethod(lambda: answer)})(),
+    )
+
+
 def _mock_checkbox(answers: list[str], monkeypatch):
     monkeypatch.setattr(
         import_cmd.questionary,
@@ -92,6 +100,41 @@ def test_import_with_rename_stores_upstream_name(tmp_path, monkeypatch):
     assert "name: local-name" in text
     assert "upstream_name: my-skill" in text
     assert "state: experimental" in text
+
+
+@respx.mock
+def test_import_with_rename_rejects_invalid_name(tmp_path, monkeypatch):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+
+    result = runner.invoke(app, ["import", _RAW_URL, "--rename", "MySkill"])
+
+    assert result.exit_code != 0
+    assert not (tmp_path / "MySkill").exists()
+    assert not (tmp_path / "my-skill").exists()
+
+
+@respx.mock
+def test_import_with_rename_fails_on_collision_with_local_name(tmp_path, monkeypatch):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+    existing = tmp_path / "local-name"
+    existing.mkdir()
+    (existing / "SKILL.md").write_text(
+        "---\nname: local-name\ndescription: already here\n"
+        "mysk:\n  state: active\n---\n"
+    )
+
+    result = runner.invoke(app, ["import", _RAW_URL, "--rename", "local-name"])
+
+    assert result.exit_code != 0
+    assert "local-name" in result.output
+
+
+def test_import_rename_requires_a_value(tmp_path, monkeypatch):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+
+    result = runner.invoke(app, ["import", _RAW_URL, "--rename"])
+
+    assert result.exit_code != 0
 
 
 @respx.mock
@@ -176,6 +219,72 @@ def test_import_from_repo_root_picks_skill_and_imports(tmp_path, monkeypatch):
     assert "state: active" in text
     assert "modified: false" in text
     assert "my-skill" in text
+
+
+def test_import_from_local_path_with_rename_stores_skill_under_new_name(
+    tmp_path, monkeypatch
+):
+    library = tmp_path / "library"
+    library.mkdir()
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(library))
+    _mock_select("active", monkeypatch)
+
+    skill_src = tmp_path / "my-skill"
+    skill_src.mkdir()
+    (skill_src / "SKILL.md").write_text(
+        "---\nname: my-skill\ndescription: does cool things\n---\n# my-skill\n"
+    )
+
+    result = runner.invoke(app, ["import", str(skill_src), "--rename", "new-name"])
+
+    assert result.exit_code == 0, result.output
+    skill_md = library / "new-name" / "SKILL.md"
+    assert skill_md.exists()
+    text = skill_md.read_text()
+    assert "name: new-name" in text
+    assert "state: active" in text
+    assert "source:" not in text
+    assert "upstream_name:" not in text
+
+
+def test_import_from_local_path_with_rename_rejects_invalid_name(tmp_path, monkeypatch):
+    library = tmp_path / "library"
+    library.mkdir()
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(library))
+
+    skill_src = tmp_path / "my-skill"
+    skill_src.mkdir()
+    (skill_src / "SKILL.md").write_text(
+        "---\nname: my-skill\ndescription: does cool things\n---\n"
+    )
+
+    result = runner.invoke(app, ["import", str(skill_src), "--rename", "MySkill"])
+
+    assert result.exit_code != 0
+    assert not (library / "MySkill").exists()
+    assert not (library / "my-skill").exists()
+
+
+def test_import_from_local_path_with_rename_fails_on_collision(tmp_path, monkeypatch):
+    library = tmp_path / "library"
+    library.mkdir()
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(library))
+
+    existing = library / "new-name"
+    existing.mkdir()
+    (existing / "SKILL.md").write_text(
+        "---\nname: new-name\ndescription: already here\nmysk:\n  state: active\n---\n"
+    )
+
+    skill_src = tmp_path / "my-skill"
+    skill_src.mkdir()
+    (skill_src / "SKILL.md").write_text(
+        "---\nname: my-skill\ndescription: does cool things\n---\n"
+    )
+
+    result = runner.invoke(app, ["import", str(skill_src), "--rename", "new-name"])
+
+    assert result.exit_code != 0
 
 
 def test_import_from_local_path_copies_skill_as_self_authored(tmp_path, monkeypatch):
@@ -296,3 +405,68 @@ def test_import_from_repo_root_imports_multiple_selected_skills(tmp_path, monkey
     assert result.exit_code == 0, result.output
     assert (tmp_path / "skill-a" / "SKILL.md").exists()
     assert (tmp_path / "skill-b" / "SKILL.md").exists()
+
+
+@respx.mock
+def test_import_from_repo_root_prompts_rename_on_collision(tmp_path, monkeypatch):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+
+    existing = tmp_path / "my-skill"
+    existing.mkdir()
+    (existing / "SKILL.md").write_text(
+        "---\nname: my-skill\ndescription: already here\nmysk:\n  state: active\n"
+        "  source: https://other-repo/my-skill\n  modified: false\n---\n"
+    )
+
+    _mock_checkbox(["my-skill"], monkeypatch)
+    _mock_text("my-skill-local", monkeypatch)
+    _mock_select("experimental", monkeypatch)
+
+    root = RepoRootUrl.parse(_REPO_ROOT_URL)
+    respx.get(root.trees_api_url()).mock(
+        return_value=httpx.Response(
+            200, json={"tree": [{"type": "blob", "path": "my-skill/SKILL.md"}]}
+        )
+    )
+    respx.get(_REPO_ROOT_TARBALL_URL).mock(
+        return_value=httpx.Response(200, content=_make_tarball("my-skill", _SKILL_MD))
+    )
+
+    result = runner.invoke(app, ["import", _REPO_ROOT_URL])
+
+    assert result.exit_code == 0, result.output
+    skill_md = tmp_path / "my-skill-local" / "SKILL.md"
+    assert skill_md.exists()
+    text = skill_md.read_text()
+    assert "name: my-skill-local" in text
+    assert "upstream_name: my-skill" in text
+    assert "state: experimental" in text
+
+
+@respx.mock
+def test_import_from_repo_root_skips_skill_when_rename_blank(tmp_path, monkeypatch):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+
+    existing = tmp_path / "my-skill"
+    existing.mkdir()
+    (existing / "SKILL.md").write_text(
+        "---\nname: my-skill\ndescription: already here\nmysk:\n  state: active\n"
+        "  source: https://other-repo/my-skill\n  modified: false\n---\n"
+    )
+
+    _mock_checkbox(["my-skill"], monkeypatch)
+    _mock_text("", monkeypatch)
+
+    root = RepoRootUrl.parse(_REPO_ROOT_URL)
+    respx.get(root.trees_api_url()).mock(
+        return_value=httpx.Response(
+            200, json={"tree": [{"type": "blob", "path": "my-skill/SKILL.md"}]}
+        )
+    )
+
+    result = runner.invoke(app, ["import", _REPO_ROOT_URL])
+
+    assert result.exit_code == 0, result.output
+    assert not (tmp_path / "my-skill-v2").exists()
+    skill_md = tmp_path / "my-skill" / "SKILL.md"
+    assert "other-repo" in skill_md.read_text()

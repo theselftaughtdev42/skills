@@ -36,7 +36,7 @@ def import_skill(
     """Import a skill from a GitHub URL or local path into the Skill Library."""
     local_path = Path(url).expanduser()
     if local_path.exists() and local_path.is_dir():
-        _import_from_local_path(local_path)
+        _import_from_local_path(local_path, rename)
         return
 
     try:
@@ -71,9 +71,37 @@ def _import_from_repo_root(url: str) -> None:
     if not selected_paths:
         raise typer.Exit(1)
 
+    library = skill_library()
+
     for path in selected_paths:
         skill_url = repo_root_url.skill_url(path)
-        _import_single(ImportUrl.parse(skill_url), skill_url, None)
+        import_url = ImportUrl.parse(skill_url)
+        upstream_dir_name = import_url.skill_dir_name
+        rename = None
+
+        try:
+            check_collision(library, upstream_dir_name, skill_url)
+        except CollisionError as exc:
+            rprint(f"[yellow]Collision:[/yellow] {exc}")
+            new_name = questionary.text(
+                f"Enter a new local name for {upstream_dir_name!r}, "
+                "or leave blank to skip:"
+            ).ask()
+            if not new_name:
+                continue
+            try:
+                validate_skill_name(new_name)
+            except ValueError as ve:
+                rprint(f"[red]Error:[/red] {ve}")
+                continue
+            try:
+                check_collision(library, new_name, skill_url)
+            except CollisionError as ce:
+                rprint(f"[red]Error:[/red] {ce}")
+                continue
+            rename = new_name
+
+        _import_single(import_url, skill_url, rename)
 
 
 def _write_skill_to_library(src: Path, skill_md_content: str, dest: Path) -> None:
@@ -84,8 +112,8 @@ def _write_skill_to_library(src: Path, skill_md_content: str, dest: Path) -> Non
         shutil.copytree(staging, dest)
 
 
-def _import_from_local_path(path: Path) -> None:
-    local_name = path.name
+def _import_from_local_path(path: Path, rename: str | None = None) -> None:
+    local_name = rename if rename is not None else path.name
 
     try:
         validate_skill_name(local_name)
@@ -113,10 +141,10 @@ def _import_from_local_path(path: Path) -> None:
         rprint(f"[red]Error:[/red] Malformed SKILL.md: {exc}")
         raise typer.Exit(1) from None
 
-    if local_skill.name != local_name:
+    if local_skill.name != path.name:
         rprint(
             f"[red]Error:[/red] The skill's name field {local_skill.name!r} "
-            f"does not match the directory name {local_name!r}. "
+            f"does not match the directory name {path.name!r}. "
             f"Skills must satisfy the Agent Skills naming constraint."
         )
         raise typer.Exit(1)
