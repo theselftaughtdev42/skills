@@ -178,6 +178,83 @@ def test_import_from_repo_root_picks_skill_and_imports(tmp_path, monkeypatch):
     assert "my-skill" in text
 
 
+def test_import_from_local_path_copies_skill_as_self_authored(tmp_path, monkeypatch):
+    library = tmp_path / "library"
+    library.mkdir()
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(library))
+    _mock_select("active", monkeypatch)
+
+    skill_src = tmp_path / "my-skill"
+    skill_src.mkdir()
+    (skill_src / "SKILL.md").write_text(
+        "---\nname: my-skill\ndescription: does cool things\n---\n# my-skill\n"
+    )
+
+    result = runner.invoke(app, ["import", str(skill_src)])
+
+    assert result.exit_code == 0, result.output
+    skill_md = library / "my-skill" / "SKILL.md"
+    assert skill_md.exists()
+    text = skill_md.read_text()
+    assert "state: active" in text
+    assert "source:" not in text
+
+
+def test_import_from_local_path_errors_when_skill_md_missing(tmp_path, monkeypatch):
+    library = tmp_path / "library"
+    library.mkdir()
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(library))
+
+    skill_src = tmp_path / "my-skill"
+    skill_src.mkdir()
+
+    result = runner.invoke(app, ["import", str(skill_src)])
+
+    assert result.exit_code != 0
+    assert "SKILL.md" in result.output
+
+
+def test_import_from_local_path_errors_when_name_mismatches_directory(
+    tmp_path, monkeypatch
+):
+    library = tmp_path / "library"
+    library.mkdir()
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(library))
+
+    skill_src = tmp_path / "my-skill"
+    skill_src.mkdir()
+    (skill_src / "SKILL.md").write_text(
+        "---\nname: different-name\ndescription: does cool things\n---\n"
+    )
+
+    result = runner.invoke(app, ["import", str(skill_src)])
+
+    assert result.exit_code != 0
+    assert not (library / "my-skill").exists()
+
+
+def test_import_from_local_path_errors_on_name_collision(tmp_path, monkeypatch):
+    library = tmp_path / "library"
+    library.mkdir()
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(library))
+
+    existing = library / "my-skill"
+    existing.mkdir()
+    (existing / "SKILL.md").write_text(
+        "---\nname: my-skill\ndescription: original\nmysk:\n  state: active\n---\n"
+    )
+
+    skill_src = tmp_path / "my-skill"
+    skill_src.mkdir()
+    (skill_src / "SKILL.md").write_text(
+        "---\nname: my-skill\ndescription: new version\n---\n"
+    )
+
+    result = runner.invoke(app, ["import", str(skill_src)])
+
+    assert result.exit_code != 0
+
+
 _SKILL_A_MD = "---\nname: skill-a\ndescription: skill a\n---\n# skill-a\n"
 _SKILL_B_MD = "---\nname: skill-b\ndescription: skill b\n---\n# skill-b\n"
 
