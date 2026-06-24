@@ -25,13 +25,20 @@ _LIFECYCLE_CHOICES = [
 
 
 def import_skill(
-    url: Annotated[str, typer.Argument(help="GitHub URL of the skill directory.")],
+    url: Annotated[
+        str, typer.Argument(help="GitHub URL or local path of the skill directory.")
+    ],
     rename: Annotated[
         str | None,
         typer.Option("--rename", help="Import the skill under a different local name."),
     ] = None,
 ) -> None:
-    """Import a skill from a GitHub URL into the Skill Library."""
+    """Import a skill from a GitHub URL or local path into the Skill Library."""
+    local_path = Path(url).expanduser()
+    if local_path.exists() and local_path.is_dir():
+        _import_from_local_path(local_path)
+        return
+
     try:
         import_url = ImportUrl.parse(url)
     except ValueError:
@@ -67,6 +74,69 @@ def _import_from_repo_root(url: str) -> None:
     for path in selected_paths:
         skill_url = repo_root_url.skill_url(path)
         _import_single(ImportUrl.parse(skill_url), skill_url, None)
+
+
+def _import_from_local_path(path: Path) -> None:
+    local_name = path.name
+
+    try:
+        validate_skill_name(local_name)
+    except ValueError as exc:
+        rprint(f"[red]Error:[/red] {exc}")
+        raise typer.Exit(1) from None
+
+    library = skill_library()
+
+    try:
+        check_collision(library, local_name, None)
+    except CollisionError as exc:
+        rprint(f"[red]Error:[/red] {exc}")
+        raise typer.Exit(1) from None
+
+    skill_md_path = path / "SKILL.md"
+    if not skill_md_path.exists():
+        rprint("[red]Error:[/red] Skill directory has no SKILL.md.")
+        raise typer.Exit(1)
+
+    data, body = frontmatter.read(skill_md_path.read_text())
+    try:
+        local_skill = Skill.from_frontmatter(data)
+    except (ValueError, KeyError) as exc:
+        rprint(f"[red]Error:[/red] Malformed SKILL.md: {exc}")
+        raise typer.Exit(1) from None
+
+    if local_skill.name != local_name:
+        rprint(
+            f"[red]Error:[/red] The skill's name field {local_skill.name!r} "
+            f"does not match the directory name {local_name!r}. "
+            f"Skills must satisfy the Agent Skills naming constraint."
+        )
+        raise typer.Exit(1)
+
+    state_value = questionary.select(
+        "Choose a lifecycle state:",
+        choices=_LIFECYCLE_CHOICES,
+    ).ask()
+    if state_value is None:
+        raise typer.Exit(1)
+
+    mysk_block = MyskBlock(
+        state=LifecycleState(state_value),
+        provenance=Provenance(),
+    )
+    final_skill = Skill(
+        name=local_name,
+        description=local_skill.description,
+        mysk=mysk_block,
+    )
+
+    dest = library / local_name
+    shutil.copytree(path, dest)
+    (dest / "SKILL.md").write_text(
+        frontmatter.write(final_skill.to_frontmatter(), body)
+    )
+
+    print(f"Imported {local_name!r} ({state_value}).")
 
 
 def _import_single(import_url: ImportUrl, url: str, rename: str | None) -> None:
