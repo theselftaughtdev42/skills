@@ -1,9 +1,11 @@
 from pathlib import Path
+from typing import cast
 
 import questionary
 import typer
 from rich import print as rprint
 
+from mysk.domain.skill import Skill
 from mysk.io.deploy import reconcile_skill
 from mysk.io.skills import load_skills, skill_library
 from mysk.io.targets import discover_targets
@@ -76,12 +78,14 @@ def deploy(
         selected_skills = deployable
     elif skills is not None:
         names = {n.strip() for n in skills.split(",")}
-        known = {r.skill.name for r in deployable}
+        known = {r.skill.name for r in deployable if r.skill is not None}
         unknown = names - known
         if unknown:
             print(f"Unknown skill(s): {', '.join(sorted(unknown))}")
             raise typer.Exit(1)
-        selected_skills = [r for r in deployable if r.skill.name in names]
+        selected_skills = [
+            r for r in deployable if r.skill is not None and r.skill.name in names
+        ]
     else:
         selected_skills = questionary.checkbox(
             "Select skills to deploy:\n",
@@ -90,6 +94,7 @@ def deploy(
                     f"{r.skill.name} ({r.skill.mysk.state.value})", value=r
                 )
                 for r in deployable
+                if r.skill is not None and r.skill.mysk is not None
             ],
         ).ask()
 
@@ -103,7 +108,7 @@ def deploy(
         if created:
             print(f"  Created {created}")
         for skill_result in selected_skills:
-            skill = skill_result.skill
+            skill = cast(Skill, skill_result.skill)
             source_dir = skill_result.path.parent
             target_path = target.path / skill.name
             result = reconcile_skill(source_dir, target_path, overwrite=overwrite)

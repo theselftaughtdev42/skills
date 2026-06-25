@@ -1,7 +1,7 @@
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, cast
 
 import typer
 from rich import print as rprint
@@ -34,7 +34,7 @@ def refresh_skill(
     if all_skills:
         _refresh_all(library)
     else:
-        _refresh_one(name, library)
+        _refresh_one(cast(str, name), library)
 
 
 def _refresh_all(library: Path) -> None:
@@ -52,8 +52,20 @@ def _refresh_all(library: Path) -> None:
         rprint("No imported skills found in the Skill Library.")
         return
 
-    refreshable = [r for r in imported if not r.skill.mysk.provenance.modified]
-    needs_review = [r for r in imported if r.skill.mysk.provenance.modified]
+    refreshable = [
+        r
+        for r in imported
+        if r.skill is not None
+        and r.skill.mysk is not None
+        and not r.skill.mysk.provenance.modified
+    ]
+    needs_review = [
+        r
+        for r in imported
+        if r.skill is not None
+        and r.skill.mysk is not None
+        and r.skill.mysk.provenance.modified
+    ]
 
     for result in refreshable:
         skill_name = result.path.parent.name
@@ -93,7 +105,7 @@ def _refresh_one(name: str, library: Path) -> None:
         )
         raise typer.Exit(1)
 
-    source = skill.mysk.provenance.source
+    source = cast(str, skill.mysk.provenance.source)
     try:
         import_url = ImportUrl.parse(source)
     except ValueError as exc:
