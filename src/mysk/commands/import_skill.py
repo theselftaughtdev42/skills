@@ -22,7 +22,6 @@ from mysk.io.skills import CollisionError, check_collision, skill_library
 _console = Console()
 
 _LIFECYCLE_CHOICES = [
-    LifecycleState.INIT.value,
     LifecycleState.EXPERIMENTAL.value,
     LifecycleState.ACTIVE.value,
 ]
