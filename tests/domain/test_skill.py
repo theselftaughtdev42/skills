@@ -85,7 +85,7 @@ def test_mysk_block_requires_state():
     import pydantic
 
     with pytest.raises(pydantic.ValidationError):
-        MyskBlock()
+        MyskBlock()  # type: ignore[call-arg]
 
 
 def test_reads_owned_active_skill():
@@ -93,6 +93,7 @@ def test_reads_owned_active_skill():
         {"name": "foo", "description": "bar", "mysk": {"state": "active"}}
     )
 
+    assert skill.mysk is not None
     assert skill.mysk.state is LifecycleState.ACTIVE
     assert skill.mysk.provenance.is_imported is False
 
@@ -110,6 +111,7 @@ def test_reads_imported_experimental_skill():
         }
     )
 
+    assert skill.mysk is not None
     assert skill.mysk.state is LifecycleState.EXPERIMENTAL
     assert skill.mysk.provenance.source == "https://github.com/owner/repo"
     assert skill.mysk.provenance.modified is True

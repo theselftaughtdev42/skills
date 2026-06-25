@@ -119,6 +119,7 @@ def test_modified_imported_skill_carries_modified_flag(tmp_path):
     results = load_skills(tmp_path)
     r = results[0]
     assert r.skill is not None
+    assert r.skill.mysk is not None
     assert r.skill.mysk.provenance.modified
 
 

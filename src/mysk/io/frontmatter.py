@@ -41,8 +41,8 @@ def write(data: dict, body: str) -> str:
     return f"{_FENCE}\n{rendered}{_FENCE}\n{body}"
 
 
-def _normalize(data: dict) -> dict:
-    result = {}
+def _normalize(data: dict) -> dict[str, object]:
+    result: dict[str, object] = {}
     for k, v in data.items():
         if isinstance(v, str):
             result[k] = v.rstrip()

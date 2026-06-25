@@ -1,5 +1,6 @@
 import io
 import tarfile
+from pathlib import Path
 
 import httpx
 import respx
@@ -591,7 +592,7 @@ def test_import_from_repo_root_skips_skill_when_rename_blank(tmp_path, monkeypat
 
 
 def _make_local_skill_dir(
-    parent: object, name: str, description: str = "a skill"
+    parent: Path, name: str, description: str = "a skill"
 ) -> None:
     d = parent / name
     d.mkdir()

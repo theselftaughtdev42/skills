@@ -69,7 +69,7 @@ class CollisionError(Exception):
     pass
 
 
-def check_collision(library: Path, name: str, source: str) -> None:
+def check_collision(library: Path, name: str, source: str | None) -> None:
     """Raise CollisionError if *name* already exists in the Skill Library.
 
     Three cases:
