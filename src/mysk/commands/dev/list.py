@@ -10,7 +10,6 @@ _STATUS_STYLE: dict[LifecycleState, str] = {
     LifecycleState.ACTIVE: "[green]active[/green]",
     LifecycleState.EXPERIMENTAL: "[yellow]experimental[/yellow]",
     LifecycleState.DEPRECATED: "[dim]deprecated[/dim]",
-    LifecycleState.INIT: "[dim italic]init[/dim italic]",
 }
 
 

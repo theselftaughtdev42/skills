@@ -30,7 +30,7 @@ def test_set_lifecycle_updates_existing_mysk_block(tmp_path):
     path = _skill(
         tmp_path,
         "foo",
-        "name: foo\ndescription: d\nmysk:\n  state: init\n",
+        "name: foo\ndescription: d\nmysk:\n  state: active\n",
         body="# Foo\n",
     )
     mark.set_skill_lifecycle(path, LifecycleState.EXPERIMENTAL)
@@ -61,7 +61,7 @@ def test_noninteractive_sets_state_by_name_and_status(monkeypatch, tmp_path):
     path = _skill(
         tmp_path,
         "foo",
-        "name: foo\ndescription: d\nmysk:\n  state: init\n",
+        "name: foo\ndescription: d\nmysk:\n  state: active\n",
         body="# Foo\n",
     )
     result = _run(monkeypatch, tmp_path, extra_args=("foo", "--status", "experimental"))
@@ -86,8 +86,12 @@ def test_skill_choice_title_includes_current_state(tmp_path):
 
 
 def test_interactive_marks_multiple_skills_with_same_state(monkeypatch, tmp_path):
-    foo = _skill(tmp_path, "foo", "name: foo\ndescription: d\nmysk:\n  state: init\n")
-    bar = _skill(tmp_path, "bar", "name: bar\ndescription: d\nmysk:\n  state: init\n")
+    foo = _skill(
+        tmp_path, "foo", "name: foo\ndescription: d\nmysk:\n  state: experimental\n"
+    )
+    bar = _skill(
+        tmp_path, "bar", "name: bar\ndescription: d\nmysk:\n  state: experimental\n"
+    )
     result = _run(
         monkeypatch,
         tmp_path,

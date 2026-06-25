@@ -9,7 +9,7 @@ A directory containing a `SKILL.md` entry point and any supporting files. The di
 _Avoid_: plugin, module, script
 
 **mysk**:
-The CLI tool and package name for this project. Manages the skill lifecycle: import, list, deploy, refresh, mark, deprecate, and clean up.
+The CLI tool and package name for this project. Manages the skill lifecycle: import, list, deploy, refresh, mark, and deprecate.
 _Avoid_: skills.py, the tool, the script
 
 **Skill Library**:
@@ -31,10 +31,6 @@ _Avoid_: update, sync, pull
 **Deployment Target**:
 An agent-specific directory on the local machine that receives symlinked skills (e.g. `~/.claude/skills`, `~/.cursor/skills`). Targets are auto-discovered by checking whether the agent's home directory exists — no config file is maintained.
 _Avoid_: destination, output directory
-
-**Init**:
-A lifecycle state indicating a skill is owned by `mysk` (it has a `mysk` block) but is still being written. Typically a freshly scaffolded skill not yet considered ready for regular use.
-_Avoid_: new, scaffold, draft
 
 **Active**:
 The primary lifecycle state, indicating a skill is ready for regular use. Active skills are deployed.

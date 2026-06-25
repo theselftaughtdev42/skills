@@ -57,12 +57,6 @@ def test_deprecated_skill_shows_deprecated_status(monkeypatch, tmp_path):
     assert "deprecated" in result.output
 
 
-def test_init_skill_shows_init_status(monkeypatch, tmp_path):
-    _skill(tmp_path, "foo", "name: foo\ndescription: d\nmysk:\n  state: init\n")
-    result = _run(monkeypatch, tmp_path)
-    assert "init" in result.output
-
-
 def test_self_authored_skill_shows_self_authored(monkeypatch, tmp_path):
     _skill(tmp_path, "foo", "name: foo\ndescription: d\nmysk:\n  state: active\n")
     result = _run(monkeypatch, tmp_path)

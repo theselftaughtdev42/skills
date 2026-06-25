@@ -127,7 +127,9 @@ def test_unknown_state_value_is_rejected():
     [
         Skill(name="a", description="d"),
         Skill(name="a", description="d", mysk=MyskBlock(state=LifecycleState.ACTIVE)),
-        Skill(name="a", description="d", mysk=MyskBlock(state=LifecycleState.INIT)),
+        Skill(
+            name="a", description="d", mysk=MyskBlock(state=LifecycleState.EXPERIMENTAL)
+        ),
         Skill(
             name="a", description="d", mysk=MyskBlock(state=LifecycleState.DEPRECATED)
         ),

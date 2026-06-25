@@ -31,9 +31,11 @@ _EXPERIMENTAL_SKILL = SkillLoadResult(
     schema_error=None,
     is_unmigrated=False,
 )
-_INIT_SKILL = SkillLoadResult(
+_DEPRECATED_SKILL = SkillLoadResult(
     path=Path("/fake/skills/wip/SKILL.md"),
-    skill=Skill(name="wip", description="d", mysk=MyskBlock(state=LifecycleState.INIT)),
+    skill=Skill(
+        name="wip", description="d", mysk=MyskBlock(state=LifecycleState.DEPRECATED)
+    ),
     schema_error=None,
     is_unmigrated=False,
 )
@@ -220,7 +222,7 @@ def test_all_skills_with_mysk_block_appear_in_skill_prompt_as_name_state(monkeyp
     _run(
         monkeypatch,
         targets=[_CLAUDE_TARGET],
-        skills=[_ACTIVE_SKILL, _EXPERIMENTAL_SKILL, _INIT_SKILL],
+        skills=[_ACTIVE_SKILL, _EXPERIMENTAL_SKILL, _DEPRECATED_SKILL],
         questionary_stub=stub,
     )
 
@@ -233,7 +235,7 @@ def test_all_skills_with_mysk_block_appear_in_skill_prompt_as_name_state(monkeyp
     titles = [title for title, _ in skill_choices]
     assert "foo (active)" in titles
     assert "bar (experimental)" in titles
-    assert "wip (init)" in titles
+    assert "wip (deprecated)" in titles
 
 
 def test_summary_printed_per_target_with_outcomes(monkeypatch):
