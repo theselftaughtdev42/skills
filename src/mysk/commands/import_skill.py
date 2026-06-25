@@ -6,6 +6,8 @@ from typing import Annotated
 import questionary
 import typer
 from rich import print as rprint
+from rich.console import Console
+from rich.rule import Rule
 
 from mysk.domain.import_url import ImportUrl, RepoRootUrl
 from mysk.domain.lifecycle import LifecycleState
@@ -16,6 +18,8 @@ from mysk.domain.skill import Skill
 from mysk.io import frontmatter
 from mysk.io.github import DownloadError, download_skill, scan_repo_for_skills
 from mysk.io.skills import CollisionError, check_collision, skill_library
+
+_console = Console()
 
 _LIFECYCLE_CHOICES = [
     LifecycleState.INIT.value,
@@ -72,12 +76,19 @@ def _import_from_repo_root(url: str) -> None:
         raise typer.Exit(1)
 
     library = skill_library()
+    total = len(selected_paths)
+    imported = 0
 
-    for path in selected_paths:
+    for i, path in enumerate(selected_paths, 1):
         skill_url = repo_root_url.skill_url(path)
         import_url = ImportUrl.parse(skill_url)
         upstream_dir_name = import_url.skill_dir_name
         rename = None
+
+        _console.print()
+        _console.print(
+            Rule(f"[bold]{upstream_dir_name}[/bold]  [dim]{i} of {total}[/dim]")
+        )
 
         try:
             check_collision(library, upstream_dir_name, skill_url)
@@ -102,6 +113,11 @@ def _import_from_repo_root(url: str) -> None:
             rename = new_name
 
         _import_single(import_url, skill_url, rename)
+        imported += 1
+
+    _console.print()
+    _console.print(Rule(style="dim"))
+    rprint(f"Imported [bold]{imported}[/bold] of [bold]{total}[/bold] selected skills.")
 
 
 def _write_skill_to_library(src: Path, skill_md_content: str, dest: Path) -> None:

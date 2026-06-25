@@ -69,7 +69,9 @@ def test_import_downloads_skill_and_prompts_for_lifecycle(tmp_path, monkeypatch)
     monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
     _mock_select("active", monkeypatch)
     respx.get(_TARBALL_URL).mock(
-        return_value=httpx.Response(200, content=_make_tarball("my-skill", _SKILL_MD))
+        return_value=httpx.Response(
+            200, content=_make_tarball("skills/my-skill", _SKILL_MD)
+        )
     )
 
     result = runner.invoke(app, ["import", _RAW_URL])
@@ -88,7 +90,9 @@ def test_import_with_rename_stores_upstream_name(tmp_path, monkeypatch):
     monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
     _mock_select("experimental", monkeypatch)
     respx.get(_TARBALL_URL).mock(
-        return_value=httpx.Response(200, content=_make_tarball("my-skill", _SKILL_MD))
+        return_value=httpx.Response(
+            200, content=_make_tarball("skills/my-skill", _SKILL_MD)
+        )
     )
 
     result = runner.invoke(app, ["import", _RAW_URL, "--rename", "local-name"])
@@ -149,7 +153,9 @@ def test_import_prompts_rename_on_collision(tmp_path, monkeypatch):
     _mock_text("my-skill-local", monkeypatch)
     _mock_select("active", monkeypatch)
     respx.get(_TARBALL_URL).mock(
-        return_value=httpx.Response(200, content=_make_tarball("my-skill", _SKILL_MD))
+        return_value=httpx.Response(
+            200, content=_make_tarball("skills/my-skill", _SKILL_MD)
+        )
     )
 
     result = runner.invoke(app, ["import", _RAW_URL])
