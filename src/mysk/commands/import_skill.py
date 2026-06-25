@@ -141,7 +141,7 @@ def _import_from_local_path(path: Path, rename: str | None = None) -> None:
         rprint(f"[red]Error:[/red] Malformed SKILL.md: {exc}")
         raise typer.Exit(1) from None
 
-    if local_skill.name != path.name:
+    if rename is None and local_skill.name != path.name:
         rprint(
             f"[red]Error:[/red] The skill's name field {local_skill.name!r} "
             f"does not match the directory name {path.name!r}. "

@@ -221,6 +221,27 @@ def test_import_from_repo_root_picks_skill_and_imports(tmp_path, monkeypatch):
     assert "my-skill" in text
 
 
+def test_import_from_local_path_with_rename_ignores_source_name_mismatch(
+    tmp_path, monkeypatch
+):
+    library = tmp_path / "library"
+    library.mkdir()
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(library))
+    _mock_select("active", monkeypatch)
+
+    skill_src = tmp_path / "their-skill"
+    skill_src.mkdir()
+    (skill_src / "SKILL.md").write_text(
+        "---\nname: different-name\ndescription: does cool things\n---\n"
+    )
+
+    result = runner.invoke(app, ["import", str(skill_src), "--rename", "my-name"])
+
+    assert result.exit_code == 0, result.output
+    text = (library / "my-name" / "SKILL.md").read_text()
+    assert "name: my-name" in text
+
+
 def test_import_from_local_path_with_rename_stores_skill_under_new_name(
     tmp_path, monkeypatch
 ):
