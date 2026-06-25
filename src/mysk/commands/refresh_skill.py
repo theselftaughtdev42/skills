@@ -10,21 +10,69 @@ from mysk.domain.import_url import ImportUrl
 from mysk.domain.skill import Skill
 from mysk.io import frontmatter
 from mysk.io.github import DownloadError, download_skill
-from mysk.io.skills import skill_library
+from mysk.io.skills import load_skills, skill_library
 
 
 def refresh_skill(
-    name: Annotated[str, typer.Argument(help="Name of the skill to refresh.")],
+    name: Annotated[
+        str | None, typer.Argument(help="Name of the skill to refresh.")
+    ] = None,
+    all_skills: Annotated[
+        bool, typer.Option("--all", help="Refresh all imported skills.")
+    ] = False,
 ) -> None:
     """Refresh an imported skill from its upstream source URL."""
+    if name and all_skills:
+        rprint("[red]Error:[/red] Cannot specify both a skill name and --all.")
+        raise typer.Exit(1)
+    if not name and not all_skills:
+        rprint("[red]Error:[/red] Provide a skill name or --all.")
+        raise typer.Exit(1)
+
     library = skill_library()
+
+    if all_skills:
+        _refresh_all(library)
+    else:
+        _refresh_one(name, library)
+
+
+def _refresh_all(library: Path) -> None:
+    results = load_skills(library)
+
+    imported = [
+        r
+        for r in results
+        if r.skill is not None
+        and r.skill.mysk is not None
+        and r.skill.mysk.provenance.is_imported
+    ]
+
+    if not imported:
+        rprint("No imported skills found in the Skill Library.")
+        return
+
+    refreshable = [r for r in imported if not r.skill.mysk.provenance.modified]
+    needs_review = [r for r in imported if r.skill.mysk.provenance.modified]
+
+    for result in refreshable:
+        skill_name = result.path.parent.name
+        _refresh_one(skill_name, library)
+
+    if needs_review:
+        rprint("\n[bold yellow]Needs review[/bold yellow] (modified: true — skipped):")
+        for result in needs_review:
+            rprint(f"  {result.path.parent.name}")
+
+
+def _refresh_one(name: str, library: Path) -> None:
     skill_md_path = library / name / "SKILL.md"
 
     if not skill_md_path.exists():
         rprint(f"[red]Error:[/red] Skill {name!r} not found in the Skill Library.")
         raise typer.Exit(1)
 
-    data, body = frontmatter.read(skill_md_path.read_text())
+    data, _ = frontmatter.read(skill_md_path.read_text())
     try:
         skill = Skill.from_frontmatter(data)
     except (ValueError, KeyError) as exc:

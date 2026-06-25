@@ -187,3 +187,95 @@ def test_refresh_no_changes_skips_write(tmp_path, monkeypatch):
     assert result.exit_code == 0, result.output
     assert "no changes" in result.output.lower()
     assert (tmp_path / "my-skill" / "SKILL.md").stat().st_mtime == mtime_before
+
+
+# --- 8. --all flag ----------------------------------------------------------
+
+
+def test_refresh_all_and_name_errors():
+    result = runner.invoke(app, ["refresh", "--all", "my-skill"])
+
+    assert result.exit_code != 0
+
+
+def test_refresh_all_no_imported_skills(tmp_path, monkeypatch):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+    skill_dir = tmp_path / "my-skill"
+    skill_dir.mkdir()
+    (skill_dir / "SKILL.md").write_text(
+        "---\nname: my-skill\ndescription: mine\nmysk:\n  state: active\n---\n"
+    )
+
+    result = runner.invoke(app, ["refresh", "--all"])
+
+    assert result.exit_code == 0
+    assert "no imported" in result.output.lower()
+
+
+_SOURCE_URL_A = "https://github.com/alice/cool-skills/tree/main/skills/skill-a"
+_SOURCE_URL_B = "https://github.com/alice/cool-skills/tree/main/skills/skill-b"
+
+
+@respx.mock
+def test_refresh_all_clean_path(tmp_path, monkeypatch):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+
+    (tmp_path / "skill-a").mkdir()
+    (tmp_path / "skill-a" / "SKILL.md").write_text(
+        _installed_skill_md(name="skill-a", source=_SOURCE_URL_A)
+    )
+    (tmp_path / "skill-b").mkdir()
+    (tmp_path / "skill-b" / "SKILL.md").write_text(
+        _installed_skill_md(name="skill-b", source=_SOURCE_URL_B)
+    )
+
+    upstream_a = "---\nname: skill-a\ndescription: improved a\n---\n# skill-a\n"
+    upstream_b = "---\nname: skill-b\ndescription: improved b\n---\n# skill-b\n"
+    respx.get(_TARBALL_URL).mock(
+        side_effect=[
+            httpx.Response(200, content=_make_tarball("skills/skill-a", upstream_a)),
+            httpx.Response(200, content=_make_tarball("skills/skill-b", upstream_b)),
+        ]
+    )
+
+    result = runner.invoke(app, ["refresh", "--all"])
+
+    assert result.exit_code == 0, result.output
+    assert "description: improved a" in (tmp_path / "skill-a" / "SKILL.md").read_text()
+    assert "description: improved b" in (tmp_path / "skill-b" / "SKILL.md").read_text()
+
+
+@respx.mock
+def test_refresh_all_mixed_modified(tmp_path, monkeypatch):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+
+    _source_clean = "https://github.com/alice/cool-skills/tree/main/skills/skill-clean"
+    _source_dirty = "https://github.com/alice/cool-skills/tree/main/skills/skill-dirty"
+
+    (tmp_path / "skill-clean").mkdir()
+    (tmp_path / "skill-clean" / "SKILL.md").write_text(
+        _installed_skill_md(name="skill-clean", source=_source_clean)
+    )
+    (tmp_path / "skill-dirty").mkdir()
+    (tmp_path / "skill-dirty" / "SKILL.md").write_text(
+        _installed_skill_md(name="skill-dirty", source=_source_dirty, modified=True)
+    )
+
+    upstream_clean = (
+        "---\nname: skill-clean\ndescription: updated clean\n---\n# skill-clean\n"
+    )
+    respx.get(_TARBALL_URL).mock(
+        return_value=httpx.Response(
+            200, content=_make_tarball("skills/skill-clean", upstream_clean)
+        )
+    )
+
+    result = runner.invoke(app, ["refresh", "--all"])
+
+    assert result.exit_code == 0, result.output
+    assert (
+        "description: updated clean"
+        in (tmp_path / "skill-clean" / "SKILL.md").read_text()
+    )
+    assert "needs review" in result.output.lower()
+    assert "skill-dirty" in result.output
