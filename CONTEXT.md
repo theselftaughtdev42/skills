@@ -44,6 +44,10 @@ _Avoid_: draft, WIP, beta
 A lifecycle state indicating a skill is no longer in use. Deprecated skills can be removed from all Deployment Targets via cleanup.
 _Avoid_: removed, disabled, archived
 
+**Delete**:
+The operation that permanently removes a skill from the Skill Library and unlinks it from all Deployment Targets. Irreversible.
+_Avoid_: remove, uninstall, drop
+
 **Provenance**:
 Whether a skill was self-authored or imported from an external source.
 _Avoid_: origin, attribution
