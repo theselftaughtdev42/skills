@@ -181,3 +181,44 @@ def test_foreign_symlink_in_target_is_left_untouched(monkeypatch, tmp_path):
     assert result.exit_code == 0
     assert not (library / "foo").exists()
     assert symlink.exists()
+
+
+def test_invalid_name_exits_with_error(monkeypatch, tmp_path):
+    result = _run(monkeypatch, library=tmp_path, extra_args=["../escape"])
+
+    assert result.exit_code != 0
+    assert "Error" in result.output
+
+
+def test_skill_dir_without_skill_md_treated_as_unmodified(monkeypatch, tmp_path):
+    library = tmp_path / "library"
+    library.mkdir()
+    (library / "bare").mkdir()
+
+    result = _run(
+        monkeypatch,
+        library=library,
+        questionary_stub=_confirm(True),
+        extra_args=["bare"],
+    )
+
+    assert result.exit_code == 0
+    assert not (library / "bare").exists()
+
+
+def test_malformed_skill_md_treated_as_unmodified(monkeypatch, tmp_path):
+    library = tmp_path / "library"
+    library.mkdir()
+    skill_dir = library / "foo"
+    skill_dir.mkdir()
+    (skill_dir / "SKILL.md").write_text("---\nnot: valid: yaml: [\n")
+
+    result = _run(
+        monkeypatch,
+        library=library,
+        questionary_stub=_confirm(True),
+        extra_args=["foo"],
+    )
+
+    assert result.exit_code == 0
+    assert not (library / "foo").exists()
