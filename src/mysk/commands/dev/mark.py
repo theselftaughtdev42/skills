@@ -9,7 +9,7 @@ from rich.markup import escape
 
 from mysk.domain import LifecycleState
 from mysk.io import frontmatter
-from mysk.io.skills import skill_library
+from mysk.io.skills import load_skills, skill_library
 
 _SELECTABLE_STATES = [
     LifecycleState.ACTIVE,
@@ -66,7 +66,7 @@ def dev_mark(
 ) -> None:
     """Interactively set the lifecycle state of a skill."""
     skills_root = skill_library()
-    migrated = sorted(p for p in skills_root.glob("*/SKILL.md") if _is_migrated(p))
+    migrated = [r.path for r in load_skills(skills_root) if not r.is_unmigrated]
 
     if skill_name is not None and status is not None:
         skill_path = skills_root / skill_name / "SKILL.md"
