@@ -3,7 +3,13 @@ from pathlib import Path
 import pytest
 
 from mysk.io import skills as skills_mod
-from mysk.io.skills import CollisionError, check_collision, load_skills, skill_library
+from mysk.io.skills import (
+    CollisionError,
+    check_collision,
+    load_skills,
+    skill_library,
+    skill_library_path,
+)
 
 
 def _skill(root: Path, name: str, frontmatter_lines: str, body: str = "") -> Path:
@@ -57,6 +63,24 @@ def test_results_are_sorted_alphabetically(tmp_path):
     results = load_skills(tmp_path)
     names = [r.path.parent.name for r in results]
     assert names == ["alpha", "mango", "zebra"]
+
+
+def test_skill_library_path_defaults_to_platformdirs_data_dir(monkeypatch, tmp_path):
+    monkeypatch.delenv("MYSK_SKILLS_DIR", raising=False)
+    monkeypatch.setattr(skills_mod, "user_data_dir", lambda app: str(tmp_path / app))
+    assert skill_library_path() == tmp_path / "mysk" / "skills"
+
+
+def test_skill_library_path_env_override_takes_precedence(monkeypatch, tmp_path):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path / "custom"))
+    assert skill_library_path() == tmp_path / "custom"
+
+
+def test_skill_library_path_does_not_create_directory(monkeypatch, tmp_path):
+    target = tmp_path / "nonexistent" / "skills"
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(target))
+    skill_library_path()
+    assert not target.exists()
 
 
 def test_skill_library_defaults_to_platformdirs_data_dir(monkeypatch, tmp_path):
