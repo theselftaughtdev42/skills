@@ -67,7 +67,8 @@ def deploy(
         print("Nothing selected.")
         raise typer.Exit(0)
 
-    all_skills = load_skills(skill_library())
+    library = skill_library()
+    all_skills = load_skills(library)
     deployable = [r for r in all_skills if r.skill and r.skill.mysk]
 
     if not deployable:
@@ -111,7 +112,12 @@ def deploy(
             skill = cast(Skill, skill_result.skill)
             source_dir = skill_result.path.parent
             target_path = target.path / skill.name
-            result = reconcile_skill(source_dir, target_path, overwrite=overwrite)
+            result = reconcile_skill(
+                source_dir,
+                target_path,
+                overwrite=overwrite,
+                skill_library_path=library,
+            )
             line = f"  {skill.name}: {result.outcome}"
             if result.reason:
                 line += f" ({result.reason})"

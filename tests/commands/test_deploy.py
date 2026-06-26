@@ -102,7 +102,9 @@ def test_agents_flag_targets_named_agents_without_showing_target_prompt(monkeypa
         targets=[_CLAUDE_TARGET, _CURSOR_TARGET],
         skills=[_ACTIVE_SKILL],
         questionary_stub=stub,
-        reconcile_fn=lambda s, t, overwrite: ReconcileResult(outcome="deployed"),
+        reconcile_fn=lambda s, t, overwrite, skill_library_path: ReconcileResult(
+            outcome="deployed"
+        ),
         extra_args=["--agents", "claude"],
     )
 
@@ -122,7 +124,7 @@ def test_skills_flag_deploys_named_skills_without_showing_skill_prompt(monkeypat
     stub = SimpleNamespace(checkbox=checkbox, Choice=lambda title, value=None: value)
     deployed = []
 
-    def reconcile(source_dir, target_path, overwrite):
+    def reconcile(source_dir, target_path, overwrite, skill_library_path):
         deployed.append(target_path.name)
         return ReconcileResult(outcome="deployed")
 
@@ -152,7 +154,7 @@ def test_skills_all_flag_deploys_every_deployable_skill_without_showing_skill_pr
     stub = SimpleNamespace(checkbox=checkbox, Choice=lambda title, value=None: value)
     deployed = []
 
-    def reconcile(source_dir, target_path, overwrite):
+    def reconcile(source_dir, target_path, overwrite, skill_library_path):
         deployed.append(target_path.name)
         return ReconcileResult(outcome="deployed")
 
@@ -244,7 +246,7 @@ def test_summary_printed_per_target_with_outcomes(monkeypatch):
         "bar": ReconcileResult(outcome="skipped"),
     }
 
-    def reconcile(source_dir, target_path, overwrite):
+    def reconcile(source_dir, target_path, overwrite, skill_library_path):
         return outcomes[target_path.name]
 
     result = _run(
@@ -295,7 +297,7 @@ def test_nothing_selected_at_target_prompt_exits_cleanly(monkeypatch):
 def test_overwrite_flag_passes_overwrite_true_to_reconcile(monkeypatch):
     captured = {}
 
-    def reconcile(source_dir, target_path, overwrite):
+    def reconcile(source_dir, target_path, overwrite, skill_library_path):
         captured["overwrite"] = overwrite
         return ReconcileResult(outcome="overwritten")
 
@@ -317,7 +319,7 @@ def test_overwrite_flag_passes_overwrite_true_to_reconcile(monkeypatch):
 def test_without_overwrite_flag_passes_overwrite_false_to_reconcile(monkeypatch):
     captured = {}
 
-    def reconcile(source_dir, target_path, overwrite):
+    def reconcile(source_dir, target_path, overwrite, skill_library_path):
         captured["overwrite"] = overwrite
         return ReconcileResult(outcome="skipped")
 
@@ -336,7 +338,7 @@ def test_without_overwrite_flag_passes_overwrite_false_to_reconcile(monkeypatch)
 
 
 def test_skip_reason_is_printed_alongside_outcome(monkeypatch):
-    def reconcile(source_dir, target_path, overwrite):
+    def reconcile(source_dir, target_path, overwrite, skill_library_path):
         return ReconcileResult(
             outcome="skipped",
             reason="directory already exists — use --overwrite to replace",
@@ -371,7 +373,9 @@ def test_existing_target_dir_is_not_reported_as_created(monkeypatch, tmp_path):
             target_answer=[target],
             skill_answer=[_ACTIVE_SKILL],
         ),
-        reconcile_fn=lambda s, t, overwrite: ReconcileResult(outcome="deployed"),
+        reconcile_fn=lambda s, t, overwrite, skill_library_path: ReconcileResult(
+            outcome="deployed"
+        ),
         suppress_ensure_dir=False,
     )
 
@@ -393,7 +397,9 @@ def test_missing_skills_dir_is_created_and_reported(monkeypatch, tmp_path):
             target_answer=[target],
             skill_answer=[_ACTIVE_SKILL],
         ),
-        reconcile_fn=lambda s, t, o: ReconcileResult(outcome="deployed"),
+        reconcile_fn=lambda s, t, o, skill_library_path: ReconcileResult(
+            outcome="deployed"
+        ),
         suppress_ensure_dir=False,
     )
 
