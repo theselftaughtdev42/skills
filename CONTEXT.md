@@ -20,6 +20,10 @@ _Avoid_: skills directory, skills folder, source repo
 The act of symlinking skills from the Skill Library into selected Deployment Targets via an interactive prompt. The author chooses which targets and which skills; all skills are offered for selection regardless of lifecycle state, shown as `name (state)` so an informed choice can be made.
 _Avoid_: install, publish, sync
 
+**Undeploy**:
+The operation that removes skill symlinks from selected Deployment Targets without affecting the skill in the Skill Library.
+_Avoid_: recall, retract, withdraw, uninstall
+
 **Import**:
 The operation that brings a skill into the Skill Library for the first time.
 _Avoid_: install, add, migrate, download
