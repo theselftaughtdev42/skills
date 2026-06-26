@@ -9,6 +9,7 @@ from mysk.commands import (
     list,
     mark,
     refresh_skill,
+    undeploy,
 )
 
 app = typer.Typer(
@@ -25,4 +26,5 @@ app.command("deploy")(deploy.deploy)
 app.command("import")(import_skill.import_skill)
 app.command("refresh")(refresh_skill.refresh_skill)
 app.command("cleanup")(cleanup.cleanup)
+app.command("undeploy")(undeploy.undeploy)
 app.command("library")(library.library_cmd)
