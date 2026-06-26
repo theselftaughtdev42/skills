@@ -10,15 +10,31 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
-      - name: install dev deps
-        run: uv sync --group dev
+      - name: install lint deps
+        run: uv sync --only-group lint
       - name: ruff format check
         run: uv run ruff format --check .
       - name: ruff lint
         run: uv run ruff check .
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+      - name: install typecheck deps
+        run: uv sync --group typecheck --no-dev
       - name: pyrefly type check
         run: uv run pyrefly check src/mysk
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+      - name: install test deps
+        run: uv sync --group test --no-dev
       - name: pytest with coverage
         run: uv run pytest --cov=mysk --cov-fail-under=80
