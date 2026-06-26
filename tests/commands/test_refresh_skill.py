@@ -246,6 +246,116 @@ def test_refresh_all_clean_path(tmp_path, monkeypatch):
 
 
 @respx.mock
+def test_refresh_malformed_skill_md_exits_with_error(tmp_path, monkeypatch):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+    skill_dir = tmp_path / "my-skill"
+    skill_dir.mkdir()
+    (skill_dir / "SKILL.md").write_text(
+        "---\nname: my-skill\ndescription: d\nmysk:\n  source: https://example.com\n---\n"
+    )
+
+    result = runner.invoke(app, ["refresh", "my-skill"])
+
+    assert result.exit_code != 0
+    assert "malformed" in result.output.lower()
+
+
+def test_refresh_unparseable_source_url_exits_with_error(tmp_path, monkeypatch):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+    skill_dir = tmp_path / "my-skill"
+    skill_dir.mkdir()
+    (skill_dir / "SKILL.md").write_text(
+        "---\nname: my-skill\ndescription: d\nmysk:\n  state: active\n"
+        "  source: not-a-valid-github-url\n  modified: false\n---\n"
+    )
+
+    result = runner.invoke(app, ["refresh", "my-skill"])
+
+    assert result.exit_code != 0
+
+
+@respx.mock
+def test_refresh_download_error_exits_with_error(tmp_path, monkeypatch):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+    skill_dir = tmp_path / "my-skill"
+    skill_dir.mkdir()
+    (skill_dir / "SKILL.md").write_text(_installed_skill_md())
+    respx.get(_TARBALL_URL).mock(return_value=httpx.Response(500))
+
+    result = runner.invoke(app, ["refresh", "my-skill"])
+
+    assert result.exit_code != 0
+
+
+@respx.mock
+def test_refresh_missing_upstream_skill_md_exits_with_error(tmp_path, monkeypatch):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+    skill_dir = tmp_path / "my-skill"
+    skill_dir.mkdir()
+    (skill_dir / "SKILL.md").write_text(_installed_skill_md())
+
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tar:
+        data = b"content"
+        info = tarfile.TarInfo(name="repo-abc/skills/my-skill/other.txt")
+        info.size = len(data)
+        tar.addfile(info, io.BytesIO(data))
+    respx.get(_TARBALL_URL).mock(
+        return_value=httpx.Response(200, content=buf.getvalue())
+    )
+
+    result = runner.invoke(app, ["refresh", "my-skill"])
+
+    assert result.exit_code != 0
+    assert "SKILL.md" in result.output
+
+
+@respx.mock
+def test_refresh_malformed_upstream_skill_md_exits_with_error(tmp_path, monkeypatch):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+    skill_dir = tmp_path / "my-skill"
+    skill_dir.mkdir()
+    (skill_dir / "SKILL.md").write_text(_installed_skill_md())
+
+    bad_upstream = (
+        "---\nname: my-skill\ndescription: d\nmysk:\n  source: bad\n---\n# my-skill\n"
+    )
+    respx.get(_TARBALL_URL).mock(
+        return_value=httpx.Response(
+            200, content=_make_tarball("skills/my-skill", bad_upstream)
+        )
+    )
+
+    result = runner.invoke(app, ["refresh", "my-skill"])
+
+    assert result.exit_code != 0
+    assert "malformed" in result.output.lower()
+
+
+@respx.mock
+def test_refresh_updates_and_removes_extra_local_files_when_file_sets_differ(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+    skill_dir = tmp_path / "my-skill"
+    skill_dir.mkdir()
+    (skill_dir / "SKILL.md").write_text(_installed_skill_md())
+    (skill_dir / "extra.py").write_text("# extra file only in local copy\n")
+
+    respx.get(_TARBALL_URL).mock(
+        return_value=httpx.Response(
+            200, content=_make_tarball("skills/my-skill", _UPSTREAM_SKILL_MD)
+        )
+    )
+
+    result = runner.invoke(app, ["refresh", "my-skill"])
+
+    assert result.exit_code == 0, result.output
+    assert not (tmp_path / "my-skill" / "extra.py").exists()
+    assert (tmp_path / "my-skill" / "SKILL.md").exists()
+
+
+@respx.mock
 def test_refresh_all_mixed_modified(tmp_path, monkeypatch):
     monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
 

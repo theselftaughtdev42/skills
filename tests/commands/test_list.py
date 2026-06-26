@@ -26,6 +26,18 @@ _DEPRECATED_SKILL = SkillLoadResult(
     schema_error=None,
     is_unmigrated=False,
 )
+_UNMIGRATED_SKILL = SkillLoadResult(
+    path=Path("/fake/skills/legacy/SKILL.md"),
+    skill=Skill(name="legacy", description="d"),
+    schema_error=None,
+    is_unmigrated=True,
+)
+_BAD_SKILL = SkillLoadResult(
+    path=Path("/fake/skills/bad/SKILL.md"),
+    skill=None,
+    schema_error="mysk block missing state",
+    is_unmigrated=False,
+)
 _CLAUDE_TARGET = Target(name="claude", path=Path("/home/user/.claude/skills"))
 
 
@@ -93,6 +105,31 @@ def test_non_deployable_skill_shows_em_dash_when_not_deployed(monkeypatch):
         targets=[_CLAUDE_TARGET],
         skills=[_DEPRECATED_SKILL],
         deployed_fn=lambda t, s: False,
+    )
+
+    assert result.exit_code == 0
+    assert "—" in result.output
+
+
+def test_unmigrated_skill_shows_em_dash_in_status_and_deployed_to_columns(monkeypatch):
+    result = _run(
+        monkeypatch,
+        targets=[_CLAUDE_TARGET],
+        skills=[_UNMIGRATED_SKILL],
+        deployed_fn=lambda t, s: True,
+    )
+
+    assert result.exit_code == 0
+    assert "—" in result.output
+
+
+def test_schema_error_skill_shows_em_dash_in_status_and_deployed_to_columns(
+    monkeypatch,
+):
+    result = _run(
+        monkeypatch,
+        targets=[_CLAUDE_TARGET],
+        skills=[_BAD_SKILL],
     )
 
     assert result.exit_code == 0

@@ -49,3 +49,12 @@ def test_document_without_frontmatter_is_all_body():
 
     assert data == {}
     assert body == text
+
+
+def test_unclosed_frontmatter_fence_returns_empty_dict_and_full_text():
+    text = "---\nname: foo\ndescription: d\n"  # starts with --- but no closing ---
+
+    data, body = frontmatter.read(text)
+
+    assert data == {}
+    assert body == text

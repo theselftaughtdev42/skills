@@ -66,6 +66,31 @@ def test_scan_repo_for_skills_returns_skill_dirs():
 
 
 @respx.mock
+def test_scan_repo_for_skills_raises_on_http_error():
+    respx.get(_ROOT_URL.trees_api_url()).mock(return_value=httpx.Response(500))
+
+    with pytest.raises(DownloadError, match="500"):
+        scan_repo_for_skills(_ROOT_URL)
+
+
+@respx.mock
+def test_download_skill_raises_when_skill_path_not_found_in_archive(tmp_path):
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tar:
+        data = b"content"
+        info = tarfile.TarInfo(name="repo-abc/wrong-path/file.txt")
+        info.size = len(data)
+        tar.addfile(info, io.BytesIO(data))
+
+    respx.get(_URL.tarball_url()).mock(
+        return_value=httpx.Response(200, content=buf.getvalue())
+    )
+
+    with pytest.raises(DownloadError, match="Could not find"):
+        download_skill(_URL, tmp_path / "my-skill")
+
+
+@respx.mock
 def test_download_extracts_skill_files(tmp_path):
     tarball = _make_tarball(
         "skills/my-skill",
