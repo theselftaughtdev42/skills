@@ -8,6 +8,14 @@ from mysk.domain.skill import Skill
 from mysk.io import frontmatter
 
 
+def skill_library_path() -> Path:
+    """Resolve the Skill Library path without creating it."""
+    override = os.environ.get("MYSK_SKILLS_DIR")
+    if override:
+        return Path(override).expanduser()
+    return Path(user_data_dir("mysk")) / "skills"
+
+
 def skill_library() -> Path:
     """Resolve the Skill Library directory, creating it if absent.
 
