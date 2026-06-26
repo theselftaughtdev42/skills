@@ -358,6 +358,27 @@ def test_skip_reason_is_printed_alongside_outcome(monkeypatch):
     assert "--overwrite" in result.output
 
 
+def test_existing_target_dir_is_not_reported_as_created(monkeypatch, tmp_path):
+    skills_dir = tmp_path / "skills"
+    skills_dir.mkdir()  # already exists
+    target = Target(name="claude", path=skills_dir)
+
+    result = _run(
+        monkeypatch,
+        targets=[target],
+        skills=[_ACTIVE_SKILL],
+        questionary_stub=_make_questionary(
+            target_answer=[target],
+            skill_answer=[_ACTIVE_SKILL],
+        ),
+        reconcile_fn=lambda s, t, overwrite: ReconcileResult(outcome="deployed"),
+        suppress_ensure_dir=False,
+    )
+
+    assert result.exit_code == 0
+    assert "Created" not in result.output
+
+
 def test_missing_skills_dir_is_created_and_reported(monkeypatch, tmp_path):
     agent_home = tmp_path / ".claude"
     agent_home.mkdir()

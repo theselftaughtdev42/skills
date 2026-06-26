@@ -3,14 +3,16 @@ import tarfile
 from pathlib import Path
 
 import httpx
+import pytest
 import respx
-from typer.testing import CliRunner
+import typer
 
 from mysk.cli import app
 from mysk.commands import import_skill as import_cmd
+from mysk.commands.import_skill import _import_from_local_path
 from mysk.domain.import_url import RepoRootUrl
 
-runner = CliRunner()
+runner = typer.testing.CliRunner()
 
 _RAW_URL = "https://github.com/alice/cool-skills/tree/main/skills/my-skill"
 _TARBALL_URL = "https://api.github.com/repos/alice/cool-skills/tarball/main"
@@ -478,6 +480,7 @@ def test_import_from_local_path_errors_on_name_collision(tmp_path, monkeypatch):
         "---\nname: my-skill\ndescription: new version\n---\n"
     )
 
+    _mock_text("", monkeypatch)
     result = runner.invoke(app, ["import", str(skill_src)])
 
     assert result.exit_code != 0
@@ -624,6 +627,306 @@ def test_import_from_local_dir_imports_selected_skills(tmp_path, monkeypatch):
     assert "source:" not in text_a
 
 
+@respx.mock
+def test_import_from_repo_root_exits_on_download_error(tmp_path, monkeypatch):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+
+    root = RepoRootUrl.parse(_REPO_ROOT_URL)
+    respx.get(root.trees_api_url()).mock(return_value=httpx.Response(500))
+
+    result = runner.invoke(app, ["import", _REPO_ROOT_URL])
+
+    assert result.exit_code != 0
+
+
+@respx.mock
+def test_import_from_repo_root_exits_when_nothing_selected(tmp_path, monkeypatch):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+    _mock_checkbox([], monkeypatch)
+
+    root = RepoRootUrl.parse(_REPO_ROOT_URL)
+    respx.get(root.trees_api_url()).mock(
+        return_value=httpx.Response(
+            200, json={"tree": [{"type": "blob", "path": "my-skill/SKILL.md"}]}
+        )
+    )
+
+    result = runner.invoke(app, ["import", _REPO_ROOT_URL])
+
+    assert result.exit_code != 0
+
+
+@respx.mock
+def test_import_from_repo_root_skips_skill_when_collision_rename_is_invalid(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+
+    existing = tmp_path / "my-skill"
+    existing.mkdir()
+    (existing / "SKILL.md").write_text(
+        "---\nname: my-skill\ndescription: already here\nmysk:\n  state: active\n"
+        "  source: https://other-repo/my-skill\n  modified: false\n---\n"
+    )
+
+    _mock_checkbox(["my-skill"], monkeypatch)
+    _mock_text("INVALID", monkeypatch)
+
+    root = RepoRootUrl.parse(_REPO_ROOT_URL)
+    respx.get(root.trees_api_url()).mock(
+        return_value=httpx.Response(
+            200, json={"tree": [{"type": "blob", "path": "my-skill/SKILL.md"}]}
+        )
+    )
+
+    result = runner.invoke(app, ["import", _REPO_ROOT_URL])
+
+    assert result.exit_code == 0, result.output
+    assert "0 of 1" in result.output
+
+
+@respx.mock
+def test_import_from_repo_root_skips_skill_when_collision_rename_also_collides(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+
+    existing1 = tmp_path / "my-skill"
+    existing1.mkdir()
+    (existing1 / "SKILL.md").write_text(
+        "---\nname: my-skill\ndescription: d\nmysk:\n  state: active\n"
+        "  source: https://other-repo/my-skill\n  modified: false\n---\n"
+    )
+    existing2 = tmp_path / "my-skill-local"
+    existing2.mkdir()
+    (existing2 / "SKILL.md").write_text(
+        "---\nname: my-skill-local\ndescription: d\nmysk:\n  state: active\n---\n"
+    )
+
+    _mock_checkbox(["my-skill"], monkeypatch)
+    _mock_text("my-skill-local", monkeypatch)
+
+    root = RepoRootUrl.parse(_REPO_ROOT_URL)
+    respx.get(root.trees_api_url()).mock(
+        return_value=httpx.Response(
+            200, json={"tree": [{"type": "blob", "path": "my-skill/SKILL.md"}]}
+        )
+    )
+
+    result = runner.invoke(app, ["import", _REPO_ROOT_URL])
+
+    assert result.exit_code == 0, result.output
+    assert "0 of 1" in result.output
+
+
+def test_import_from_local_path_exits_when_collision_rename_is_invalid(
+    tmp_path, monkeypatch
+):
+    library = tmp_path / "library"
+    library.mkdir()
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(library))
+
+    existing = library / "my-skill"
+    existing.mkdir()
+    (existing / "SKILL.md").write_text(
+        "---\nname: my-skill\ndescription: already here\nmysk:\n  state: active\n---\n"
+    )
+
+    _mock_text("INVALID", monkeypatch)
+
+    skill_src = tmp_path / "my-skill"
+    skill_src.mkdir()
+    (skill_src / "SKILL.md").write_text("---\nname: my-skill\ndescription: new\n---\n")
+
+    result = runner.invoke(app, ["import", str(skill_src)])
+
+    assert result.exit_code != 0
+    assert "Error" in result.output
+
+
+def test_import_from_local_path_exits_when_collision_rename_also_collides(
+    tmp_path, monkeypatch
+):
+    library = tmp_path / "library"
+    library.mkdir()
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(library))
+
+    for name in ["my-skill", "my-skill-alt"]:
+        d = library / name
+        d.mkdir()
+        (d / "SKILL.md").write_text(
+            f"---\nname: {name}\ndescription: d\nmysk:\n  state: active\n---\n"
+        )
+
+    _mock_text("my-skill-alt", monkeypatch)
+
+    skill_src = tmp_path / "my-skill"
+    skill_src.mkdir()
+    (skill_src / "SKILL.md").write_text("---\nname: my-skill\ndescription: new\n---\n")
+
+    result = runner.invoke(app, ["import", str(skill_src)])
+
+    assert result.exit_code != 0
+
+
+def test_import_from_local_path_exits_when_skill_md_missing(tmp_path, monkeypatch):
+    library = tmp_path / "library"
+    library.mkdir()
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(library))
+
+    skill_dir = tmp_path / "my-skill"
+    skill_dir.mkdir()
+
+    with pytest.raises(typer.Exit):
+        _import_from_local_path(skill_dir)
+
+
+def test_import_from_local_path_exits_when_skill_md_is_malformed(tmp_path, monkeypatch):
+    library = tmp_path / "library"
+    library.mkdir()
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(library))
+
+    skill_src = tmp_path / "my-skill"
+    skill_src.mkdir()
+    (skill_src / "SKILL.md").write_text("---\nmysk:\n  state: active\n---\n")
+
+    result = runner.invoke(app, ["import", str(skill_src)])
+
+    assert result.exit_code != 0
+    assert "malformed" in result.output.lower()
+
+
+def test_import_from_local_path_exits_when_lifecycle_selection_cancelled(
+    tmp_path, monkeypatch
+):
+    library = tmp_path / "library"
+    library.mkdir()
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(library))
+
+    _mock_select(None, monkeypatch)
+
+    skill_src = tmp_path / "my-skill"
+    skill_src.mkdir()
+    (skill_src / "SKILL.md").write_text("---\nname: my-skill\ndescription: d\n---\n")
+
+    result = runner.invoke(app, ["import", str(skill_src)])
+
+    assert result.exit_code != 0
+
+
+@respx.mock
+def test_import_single_exits_when_collision_rename_is_invalid(tmp_path, monkeypatch):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+
+    existing = tmp_path / "my-skill"
+    existing.mkdir()
+    (existing / "SKILL.md").write_text(
+        "---\nname: my-skill\ndescription: d\nmysk:\n  state: active\n"
+        "  source: https://other-repo/my-skill\n  modified: false\n---\n"
+    )
+
+    _mock_text("INVALID", monkeypatch)
+
+    result = runner.invoke(app, ["import", _RAW_URL])
+
+    assert result.exit_code != 0
+
+
+@respx.mock
+def test_import_single_exits_when_collision_rename_also_collides(tmp_path, monkeypatch):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+
+    for name in ["my-skill", "my-skill-local"]:
+        d = tmp_path / name
+        d.mkdir()
+        (d / "SKILL.md").write_text(
+            f"---\nname: {name}\ndescription: d\nmysk:\n  state: active\n---\n"
+        )
+
+    _mock_text("my-skill-local", monkeypatch)
+
+    result = runner.invoke(app, ["import", _RAW_URL])
+
+    assert result.exit_code != 0
+
+
+@respx.mock
+def test_import_single_exits_when_downloaded_skill_has_no_skill_md(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tar:
+        data = b"content"
+        info = tarfile.TarInfo(name="repo-abc/skills/my-skill/other.txt")
+        info.size = len(data)
+        tar.addfile(info, io.BytesIO(data))
+
+    respx.get(_TARBALL_URL).mock(
+        return_value=httpx.Response(200, content=buf.getvalue())
+    )
+
+    result = runner.invoke(app, ["import", _RAW_URL])
+
+    assert result.exit_code != 0
+    assert "SKILL.md" in result.output
+
+
+@respx.mock
+def test_import_single_exits_when_downloaded_skill_md_is_malformed(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+
+    bad_md = "---\nmysk:\n  state: active\n---\n# no name or description\n"
+    respx.get(_TARBALL_URL).mock(
+        return_value=httpx.Response(
+            200, content=_make_tarball("skills/my-skill", bad_md)
+        )
+    )
+
+    result = runner.invoke(app, ["import", _RAW_URL])
+
+    assert result.exit_code != 0
+    assert "malformed" in result.output.lower()
+
+
+@respx.mock
+def test_import_single_exits_when_downloaded_skill_name_mismatches_directory(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+
+    mismatch_md = "---\nname: different-name\ndescription: d\n---\n# different\n"
+    respx.get(_TARBALL_URL).mock(
+        return_value=httpx.Response(
+            200, content=_make_tarball("skills/my-skill", mismatch_md)
+        )
+    )
+
+    result = runner.invoke(app, ["import", _RAW_URL])
+
+    assert result.exit_code != 0
+    assert "does not match" in result.output.lower()
+
+
+@respx.mock
+def test_import_single_exits_when_lifecycle_selection_cancelled(tmp_path, monkeypatch):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+
+    _mock_select(None, monkeypatch)
+    respx.get(_TARBALL_URL).mock(
+        return_value=httpx.Response(
+            200, content=_make_tarball("skills/my-skill", _SKILL_MD)
+        )
+    )
+
+    result = runner.invoke(app, ["import", _RAW_URL])
+
+    assert result.exit_code != 0
+
+
 def test_import_from_local_dir_ignores_rename_flag(tmp_path, monkeypatch):
     library = tmp_path / "library"
     library.mkdir()
@@ -692,6 +995,124 @@ def test_import_from_local_dir_prompts_rename_on_collision(tmp_path, monkeypatch
     text = (library / "skill-a-new" / "SKILL.md").read_text()
     assert "name: skill-a-new" in text
     assert "state: experimental" in text
+
+
+def test_import_from_local_dir_exits_when_nothing_selected(tmp_path, monkeypatch):
+    library = tmp_path / "library"
+    library.mkdir()
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(library))
+
+    collection = tmp_path / "my-collection"
+    collection.mkdir()
+    _make_local_skill_dir(collection, "skill-a")
+
+    _mock_checkbox([], monkeypatch)
+
+    result = runner.invoke(app, ["import", str(collection)])
+
+    assert result.exit_code != 0
+
+
+def test_import_from_local_dir_skips_skill_when_collision_rename_is_invalid(
+    tmp_path, monkeypatch
+):
+    library = tmp_path / "library"
+    library.mkdir()
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(library))
+
+    existing = library / "skill-a"
+    existing.mkdir()
+    (existing / "SKILL.md").write_text(
+        "---\nname: skill-a\ndescription: d\nmysk:\n  state: active\n---\n"
+    )
+
+    collection = tmp_path / "my-collection"
+    collection.mkdir()
+    _make_local_skill_dir(collection, "skill-a")
+    _make_local_skill_dir(collection, "skill-b")
+
+    _mock_checkbox(["skill-a", "skill-b"], monkeypatch)
+    _mock_text("INVALID", monkeypatch)
+    _mock_select("active", monkeypatch)
+
+    result = runner.invoke(app, ["import", str(collection)])
+
+    assert result.exit_code == 0, result.output
+    assert not (library / "INVALID").exists()
+    assert (library / "skill-b" / "SKILL.md").exists()
+
+
+def test_import_from_local_dir_skips_skill_when_collision_rename_also_collides(
+    tmp_path, monkeypatch
+):
+    library = tmp_path / "library"
+    library.mkdir()
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(library))
+
+    for name in ["skill-a", "skill-a-rename"]:
+        d = library / name
+        d.mkdir()
+        (d / "SKILL.md").write_text(
+            f"---\nname: {name}\ndescription: d\nmysk:\n  state: active\n---\n"
+        )
+
+    collection = tmp_path / "my-collection"
+    collection.mkdir()
+    _make_local_skill_dir(collection, "skill-a")
+    _make_local_skill_dir(collection, "skill-b")
+
+    _mock_checkbox(["skill-a", "skill-b"], monkeypatch)
+    _mock_text("skill-a-rename", monkeypatch)
+    _mock_select("active", monkeypatch)
+
+    result = runner.invoke(app, ["import", str(collection)])
+
+    assert result.exit_code == 0, result.output
+    assert (library / "skill-b" / "SKILL.md").exists()
+
+
+def test_import_from_local_dir_skips_malformed_skill_md(tmp_path, monkeypatch):
+    library = tmp_path / "library"
+    library.mkdir()
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(library))
+
+    collection = tmp_path / "my-collection"
+    collection.mkdir()
+
+    bad = collection / "skill-a"
+    bad.mkdir()
+    (bad / "SKILL.md").write_text("---\ndescription: missing name\n---\n")
+
+    _make_local_skill_dir(collection, "skill-b")
+
+    _mock_checkbox(["skill-a", "skill-b"], monkeypatch)
+    _mock_select("active", monkeypatch)
+
+    result = runner.invoke(app, ["import", str(collection)])
+
+    assert result.exit_code == 0, result.output
+    assert not (library / "skill-a").exists()
+    assert (library / "skill-b" / "SKILL.md").exists()
+    assert "malformed" in result.output.lower()
+
+
+def test_import_from_local_dir_exits_when_lifecycle_selection_cancelled(
+    tmp_path, monkeypatch
+):
+    library = tmp_path / "library"
+    library.mkdir()
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(library))
+
+    collection = tmp_path / "my-collection"
+    collection.mkdir()
+    _make_local_skill_dir(collection, "skill-a")
+
+    _mock_checkbox(["skill-a"], monkeypatch)
+    _mock_select(None, monkeypatch)
+
+    result = runner.invoke(app, ["import", str(collection)])
+
+    assert result.exit_code != 0
 
 
 def test_import_from_local_dir_skips_when_collision_rename_blank(tmp_path, monkeypatch):

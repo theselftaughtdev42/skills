@@ -162,3 +162,15 @@ def test_collision_self_authored_same_name_reports_conflict(tmp_path):
 
 def test_no_collision_when_name_is_free(tmp_path):
     check_collision(tmp_path, "my-skill", _SOURCE_A)  # must not raise
+
+
+def test_collision_malformed_existing_skill_raises_collision_error(tmp_path):
+    # mysk block present but missing required 'state' key
+    _skill(
+        tmp_path,
+        "my-skill",
+        "name: my-skill\ndescription: d\nmysk:\n  source: https://example.com\n",
+    )
+
+    with pytest.raises(CollisionError, match="malformed"):
+        check_collision(tmp_path, "my-skill", None)

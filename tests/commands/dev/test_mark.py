@@ -85,6 +85,56 @@ def test_skill_choice_title_includes_current_state(tmp_path):
     assert mark._choice_title(path) == "foo (experimental)"
 
 
+def test_noninteractive_errors_for_invalid_status_value(monkeypatch, tmp_path):
+    _skill(tmp_path, "foo", "name: foo\ndescription: d\nmysk:\n  state: active\n")
+    result = _run(monkeypatch, tmp_path, extra_args=("foo", "--status", "bogus"))
+    assert result.exit_code != 0
+    assert "unknown status" in result.output.lower()
+
+
+def test_interactive_exits_cleanly_when_no_skills_selected(monkeypatch, tmp_path):
+    _skill(tmp_path, "foo", "name: foo\ndescription: d\nmysk:\n  state: active\n")
+    result = _run(monkeypatch, tmp_path, prompt_skills=lambda skills: [])
+    assert result.exit_code == 0
+
+
+def test_prompt_for_skills_returns_chosen_paths(tmp_path, monkeypatch):
+    path = _skill(
+        tmp_path, "foo", "name: foo\ndescription: d\nmysk:\n  state: active\n"
+    )
+    monkeypatch.setattr(
+        mark.questionary,
+        "checkbox",
+        lambda *a, **kw: type("Q", (), {"ask": staticmethod(lambda: [path])})(),
+    )
+    assert mark._prompt_for_skills([path]) == [path]
+
+
+def test_prompt_for_skills_returns_empty_list_when_nothing_chosen(
+    tmp_path, monkeypatch
+):
+    path = _skill(
+        tmp_path, "foo", "name: foo\ndescription: d\nmysk:\n  state: active\n"
+    )
+    monkeypatch.setattr(
+        mark.questionary,
+        "checkbox",
+        lambda *a, **kw: type("Q", (), {"ask": staticmethod(lambda: None)})(),
+    )
+    assert mark._prompt_for_skills([path]) == []
+
+
+def test_prompt_for_state_returns_selected_state(monkeypatch):
+    monkeypatch.setattr(
+        mark.questionary,
+        "select",
+        lambda *a, **kw: type(
+            "Q", (), {"ask": staticmethod(lambda: LifecycleState.ACTIVE)}
+        )(),
+    )
+    assert mark._prompt_for_state() == LifecycleState.ACTIVE
+
+
 def test_interactive_marks_multiple_skills_with_same_state(monkeypatch, tmp_path):
     foo = _skill(
         tmp_path, "foo", "name: foo\ndescription: d\nmysk:\n  state: experimental\n"
