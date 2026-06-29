@@ -22,3 +22,6 @@ pre-commit:
 	uv run pre-commit run --all-files
 
 check: format-check lint typecheck test pre-commit
+
+update-readme:
+	uv run typer mysk.cli utils docs --name mysk --output README.md
