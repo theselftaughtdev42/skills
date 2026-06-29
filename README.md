@@ -1,57 +1,181 @@
-# mysk
-Agent skills I have either made myself (less likely) or politely stolen (more likely).
+# `mysk`
 
-## Managing skills
+Manage and deploy agent skills.
 
-### Migrate
+**Usage**:
 
-Adopt existing skills into mysk management by adding a `mysk` block:
-
-```sh
-mysk dev migrate
+```console
+$ mysk [OPTIONS] COMMAND [ARGS]...
 ```
 
-Presents a checkbox of unmigrated skills. Use `--dry-run` to preview changes without writing files.
+**Options**:
 
-### Mark
+* `--install-completion`: Install completion for the current shell.
+* `--show-completion`: Show completion for the current shell, to copy it or customize the installation.
+* `--help`: Show this message and exit.
 
-Set the lifecycle state of one or more migrated skills:
+**Commands**:
 
-```sh
-mysk dev mark
+* `import`: Import a skill from a GitHub URL or local...
+* `deploy`: Deploy skills to selected Deployment Targets.
+* `cleanup`: Remove deprecated skills from all...
+* `delete`: Delete a skill from the Skill Library and...
+* `library`: Print the Skill Library filepath.
+* `list`: List all skills and where they are deployed.
+* `mark`: Interactively set a marking on one or more...
+* `refresh`: Refresh an imported skill from its...
+* `undeploy`: Remove deployed skills from selected...
+
+## `mysk import`
+
+Import a skill from a GitHub URL or local path into the Skill Library.
+
+**Usage**:
+
+```console
+$ mysk import [OPTIONS] URL COMMAND [ARGS]...
 ```
 
-Presents a checkbox of migrated skills, then a prompt for the new state: `Active`, `Experimental`, or `Deprecated`.
+**Arguments**:
 
-Non-interactive:
+* `URL`: GitHub URL or local path of the skill directory.  [required]
 
-```sh
-mysk dev mark <skill-name> --status experimental
+**Options**:
+
+* `--rename TEXT`: Import the skill under a different local name.
+* `--help`: Show this message and exit.
+
+## `mysk deploy`
+
+Deploy skills to selected Deployment Targets.
+
+**Usage**:
+
+```console
+$ mysk deploy [OPTIONS] COMMAND [ARGS]...
 ```
 
-Both commands must be run from inside the source repo.
+**Options**:
 
-## Developer setup
+* `--overwrite`: Replace non-symlink directories at collision paths.
+* `--agents TEXT`: Comma-separated agent names to target; skips the target prompt.
+* `--skills TEXT`: Comma-separated skill names to deploy; skips the skill prompt.
+* `--skills-all`: Deploy every skill without prompting; skips the skill prompt.
+* `--help`: Show this message and exit.
 
-Install pre-commit hooks after cloning:
+## `mysk cleanup`
 
-```sh
-uv run pre-commit install
+Remove deprecated skills from all Deployment Targets.
+
+**Usage**:
+
+```console
+$ mysk cleanup [OPTIONS] COMMAND [ARGS]...
 ```
 
-On each commit, four hooks run automatically:
+**Options**:
 
-1. **ruff-format** — reformats files in place
-2. **ruff** — applies safe lint fixes
-3. **pyrefly** — checks for type errors in `src/mysk`
-4. **pytest** — runs the full test suite
+* `--help`: Show this message and exit.
 
-If a hook modifies a file or finds an error, the commit aborts. Stage any formatting changes and re-commit.
+## `mysk delete`
 
-CI also enforces an **80% coverage gate**. The pre-commit hook runs the suite but does not check the threshold.
+Delete a skill from the Skill Library and all Deployment Targets.
 
-To run all hooks manually without committing:
+**Usage**:
 
-```sh
-uv run pre-commit run --all-files
+```console
+$ mysk delete [OPTIONS] NAME COMMAND [ARGS]...
 ```
+
+**Arguments**:
+
+* `NAME`: Name of the skill to delete.  [required]
+
+**Options**:
+
+* `--yes`: Skip confirmation prompt.
+* `--help`: Show this message and exit.
+
+## `mysk library`
+
+Print the Skill Library filepath.
+
+**Usage**:
+
+```console
+$ mysk library [OPTIONS] COMMAND [ARGS]...
+```
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+## `mysk list`
+
+List all skills and where they are deployed.
+
+**Usage**:
+
+```console
+$ mysk list [OPTIONS] COMMAND [ARGS]...
+```
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+## `mysk mark`
+
+Interactively set a marking on one or more skills.
+
+**Usage**:
+
+```console
+$ mysk mark [OPTIONS] [SKILL_NAME] COMMAND [ARGS]...
+```
+
+**Arguments**:
+
+* `[SKILL_NAME]`: Name of the skill to mark.
+
+**Options**:
+
+* `--key TEXT`: Marking to set (status, modified).
+* `--value TEXT`: Value for the marking.
+* `--help`: Show this message and exit.
+
+## `mysk refresh`
+
+Refresh an imported skill from its upstream source URL.
+
+**Usage**:
+
+```console
+$ mysk refresh [OPTIONS] [NAME] COMMAND [ARGS]...
+```
+
+**Arguments**:
+
+* `[NAME]`: Name of the skill to refresh.
+
+**Options**:
+
+* `--all`: Refresh all imported skills.
+* `--help`: Show this message and exit.
+
+## `mysk undeploy`
+
+Remove deployed skills from selected Deployment Targets.
+
+**Usage**:
+
+```console
+$ mysk undeploy [OPTIONS] COMMAND [ARGS]...
+```
+
+**Options**:
+
+* `--agents TEXT`: Comma-separated agent names to target; skips the target prompt.
+* `--skills TEXT`: Comma-separated skill names to undeploy; skips the skill prompt.
+* `--skills-all`: Undeploy every deployed skill without prompting; skips the skill prompt.
+* `--help`: Show this message and exit.
