@@ -25,7 +25,7 @@ class Skill(BaseModel):
     extra_fields: dict[str, Any] = Field(default_factory=dict)
 
     @classmethod
-    def from_frontmatter(cls, data: dict) -> Self:
+    def from_frontmatter(cls, data: dict[str, Any]) -> Self:
         """Build a Skill from a parsed frontmatter dict (inverse of to_frontmatter).
 
         A skill with no `mysk` key is un-migrated and gets `mysk=None`. When the
@@ -56,15 +56,15 @@ class Skill(BaseModel):
             extra_fields=extra,
         )
 
-    def to_frontmatter(self) -> dict:
+    def to_frontmatter(self) -> dict[str, Any]:
         """Render to a frontmatter dict with generic fields and the `mysk` block.
 
         An un-migrated skill emits no `mysk` key.
         """
-        result: dict = {"name": self.name, "description": self.description}
+        result: dict[str, Any] = {"name": self.name, "description": self.description}
         result.update(self.extra_fields)
         if self.mysk is not None:
-            block: dict = {"state": self.mysk.state.value}
+            block: dict[str, Any] = {"state": self.mysk.state.value}
             if self.mysk.provenance.is_imported:
                 block["source"] = self.mysk.provenance.source
                 block["modified"] = self.mysk.provenance.modified

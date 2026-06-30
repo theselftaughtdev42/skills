@@ -1,11 +1,13 @@
 """SKILL.md frontmatter parsing and serialisation (YAML between `---` fences)."""
 
+from typing import Any
+
 import yaml
 
 _FENCE = "---"
 
 
-def read(text: str) -> tuple[dict, str]:
+def read(text: str) -> tuple[dict[str, Any], str]:
     """Split a SKILL.md into its YAML frontmatter dict and the remaining body.
 
     Schema-agnostic: returns whatever keys the frontmatter contains. A document
@@ -24,7 +26,7 @@ def read(text: str) -> tuple[dict, str]:
     return {}, text
 
 
-def write(data: dict, body: str) -> str:
+def write(data: dict[str, Any], body: str) -> str:
     """Render a frontmatter dict and body back into a SKILL.md string.
 
     Inverse of `read`: `read(write(data, body))` returns the same data and body.
@@ -43,7 +45,7 @@ def write(data: dict, body: str) -> str:
     return f"{_FENCE}\n{rendered}{_FENCE}\n{body}"
 
 
-def _normalize(data: dict) -> dict[str, object]:
+def _normalize(data: dict[str, Any]) -> dict[str, object]:
     result: dict[str, object] = {}
     for k, v in data.items():
         if isinstance(v, str):
