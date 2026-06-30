@@ -1,1 +1,2 @@
-project-includes = ["src", "tests"]
+project-includes = ["src"]
+preset = "strict"

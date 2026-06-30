@@ -32,6 +32,7 @@ lint = [
 ]
 typecheck = [
     "pyrefly>=0.18.0",
+    "types-pyyaml>=6.0.0",
 ]
 test = [
     "pytest>=9.1.0",
