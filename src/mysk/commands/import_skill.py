@@ -83,33 +83,18 @@ def _import_from_local_dir(path: Path) -> None:
 
     for i, name in enumerate(selected_names, 1):
         skill_dir = skill_dir_map[name]
-        rename = None
 
         _console.print()
         _console.print(Rule(f"[bold]{name}[/bold]  [dim]{i} of {total}[/dim]"))
 
-        try:
-            check_collision(library, name, None)
-        except CollisionError as exc:
-            rprint(f"[red]Collision:[/red] {exc}")
-            new_name = questionary.text(
-                f"Enter a new local name for {name!r}, or leave blank to skip:"
-            ).ask()
-            if not new_name:
-                continue
-            try:
-                validate_skill_name(new_name)
-            except ValueError as ve:
-                rprint(f"[red]Error:[/red] {ve}")
-                continue
-            try:
-                check_collision(library, new_name, None)
-            except CollisionError as ce:
-                rprint(f"[red]Error:[/red] {ce}")
-                continue
-            rename = new_name
-
-        local_name = rename if rename is not None else name
+        local_name = _resolve_local_name(
+            library,
+            name,
+            None,
+            prompt=f"Enter a new local name for {name!r}, or leave blank to skip:",
+        )
+        if local_name is None:
+            continue
 
         data, body = frontmatter.read((skill_dir / "SKILL.md").read_text())
         try:
@@ -118,7 +103,7 @@ def _import_from_local_dir(path: Path) -> None:
             rprint(f"[red]Error:[/red] Malformed SKILL.md: {exc}")
             continue
 
-        if rename is None and local_skill.name != name:
+        if local_name == name and local_skill.name != name:
             rprint(
                 f"[red]Error:[/red] The skill's name field {local_skill.name!r} "
                 f"does not match the directory name {name!r}. "
@@ -184,41 +169,59 @@ def _import_from_repo_root(url: str) -> None:
         skill_url = repo_root_url.skill_url(path)
         import_url = ImportUrl.parse(skill_url)
         upstream_dir_name = import_url.skill_dir_name
-        rename = None
 
         _console.print()
         _console.print(
             Rule(f"[bold]{upstream_dir_name}[/bold]  [dim]{i} of {total}[/dim]")
         )
 
-        try:
-            check_collision(library, upstream_dir_name, skill_url)
-        except CollisionError as exc:
-            rprint(f"[red]Collision:[/red] {exc}")
-            new_name = questionary.text(
+        local_name = _resolve_local_name(
+            library,
+            upstream_dir_name,
+            skill_url,
+            prompt=(
                 f"Enter a new local name for {upstream_dir_name!r}, "
                 "or leave blank to skip:"
-            ).ask()
-            if not new_name:
-                continue
-            try:
-                validate_skill_name(new_name)
-            except ValueError as ve:
-                rprint(f"[red]Error:[/red] {ve}")
-                continue
-            try:
-                check_collision(library, new_name, skill_url)
-            except CollisionError as ce:
-                rprint(f"[red]Error:[/red] {ce}")
-                continue
-            rename = new_name
+            ),
+        )
+        if local_name is None:
+            continue
 
+        rename = local_name if local_name != upstream_dir_name else None
         _import_single(import_url, skill_url, rename)
         imported += 1
 
     _console.print()
     _console.print(Rule(style="dim"))
     rprint(f"Imported [bold]{imported}[/bold] of [bold]{total}[/bold] selected skills.")
+
+
+def _resolve_local_name(
+    library: Path,
+    preferred: str,
+    source: str | None,
+    *,
+    prompt: str,
+) -> str | None:
+    try:
+        check_collision(library, preferred, source)
+    except CollisionError as exc:
+        rprint(f"[red]Collision:[/red] {exc}")
+        new_name = questionary.text(prompt).ask()
+        if not new_name:
+            return None
+        try:
+            validate_skill_name(new_name)
+        except ValueError as ve:
+            rprint(f"[red]Error:[/red] {ve}")
+            return None
+        try:
+            check_collision(library, new_name, source)
+        except CollisionError as ce:
+            rprint(f"[red]Error:[/red] {ce}")
+            return None
+        return new_name
+    return preferred
 
 
 def _write_skill_to_library(src: Path, skill_md_content: str, dest: Path) -> None:
@@ -240,26 +243,15 @@ def _import_from_local_path(path: Path, rename: str | None = None) -> None:
 
     library = skill_library()
 
-    try:
-        check_collision(library, local_name, None)
-    except CollisionError as exc:
-        rprint(f"[red]Collision:[/red] {exc}")
-        new_name = questionary.text(
-            "Enter a new local name, or leave blank to cancel:"
-        ).ask()
-        if not new_name:
-            raise typer.Exit(1) from None
-        try:
-            validate_skill_name(new_name)
-        except ValueError as ve:
-            rprint(f"[red]Error:[/red] {ve}")
-            raise typer.Exit(1) from None
-        try:
-            check_collision(library, new_name, None)
-        except CollisionError as ce:
-            rprint(f"[red]Error:[/red] {ce}")
-            raise typer.Exit(1) from None
-        local_name = new_name
+    resolved_name = _resolve_local_name(
+        library,
+        local_name,
+        None,
+        prompt="Enter a new local name, or leave blank to cancel:",
+    )
+    if resolved_name is None:
+        raise typer.Exit(1)
+    local_name = resolved_name
 
     skill_md_path = path / "SKILL.md"
     if not skill_md_path.exists():
@@ -317,27 +309,17 @@ def _import_single(import_url: ImportUrl, url: str, rename: str | None) -> None:
 
     library = skill_library()
 
-    try:
-        check_collision(library, local_name, url)
-    except CollisionError as exc:
-        rprint(f"[red]Collision:[/red] {exc}")
-        new_name = questionary.text(
-            "Enter a new local name, or leave blank to cancel:"
-        ).ask()
-        if not new_name:
-            raise typer.Exit(1) from None
-        try:
-            validate_skill_name(new_name)
-        except ValueError as ve:
-            rprint(f"[red]Error:[/red] {ve}")
-            raise typer.Exit(1) from None
-        try:
-            check_collision(library, new_name, url)
-        except CollisionError as ce:
-            rprint(f"[red]Error:[/red] {ce}")
-            raise typer.Exit(1) from None
-        local_name = new_name
-        rename = new_name
+    resolved_name = _resolve_local_name(
+        library,
+        local_name,
+        url,
+        prompt="Enter a new local name, or leave blank to cancel:",
+    )
+    if resolved_name is None:
+        raise typer.Exit(1)
+    if resolved_name != local_name:
+        rename = resolved_name
+    local_name = resolved_name
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp_skill_dir = Path(tmp) / local_name

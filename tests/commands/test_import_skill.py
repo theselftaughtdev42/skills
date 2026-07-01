@@ -9,7 +9,7 @@ import typer
 
 from mysk.cli import app
 from mysk.commands import import_skill as import_cmd
-from mysk.commands.import_skill import _import_from_local_path
+from mysk.commands.import_skill import _import_from_local_path, _resolve_local_name
 from mysk.domain.import_url import RepoRootUrl
 
 runner = typer.testing.CliRunner()
@@ -1195,3 +1195,67 @@ def test_import_from_local_dir_preserves_extra_fields(tmp_path, monkeypatch):
     text = (library / "my-skill" / "SKILL.md").read_text()
     assert "license: MIT" in text
     assert "allowed-tools" in text
+
+
+def test_resolve_local_name_returns_preferred_when_no_collision(tmp_path):
+    result = _resolve_local_name(tmp_path, "my-skill", None, prompt="unused")
+
+    assert result == "my-skill"
+
+
+def test_resolve_local_name_prompts_and_returns_new_name_on_collision(
+    tmp_path, monkeypatch
+):
+    existing = tmp_path / "my-skill"
+    existing.mkdir()
+    (existing / "SKILL.md").write_text(
+        "---\nname: my-skill\ndescription: already here\nmysk:\n  state: active\n---\n"
+    )
+    _mock_text("my-skill-renamed", monkeypatch)
+
+    result = _resolve_local_name(tmp_path, "my-skill", None, prompt="Enter a new name:")
+
+    assert result == "my-skill-renamed"
+
+
+def test_resolve_local_name_returns_none_when_rename_blank(tmp_path, monkeypatch):
+    existing = tmp_path / "my-skill"
+    existing.mkdir()
+    (existing / "SKILL.md").write_text(
+        "---\nname: my-skill\ndescription: already here\nmysk:\n  state: active\n---\n"
+    )
+    _mock_text("", monkeypatch)
+
+    result = _resolve_local_name(tmp_path, "my-skill", None, prompt="Enter a new name:")
+
+    assert result is None
+
+
+def test_resolve_local_name_returns_none_when_new_name_invalid(tmp_path, monkeypatch):
+    existing = tmp_path / "my-skill"
+    existing.mkdir()
+    (existing / "SKILL.md").write_text(
+        "---\nname: my-skill\ndescription: already here\nmysk:\n  state: active\n---\n"
+    )
+    _mock_text("Not Valid", monkeypatch)
+
+    result = _resolve_local_name(tmp_path, "my-skill", None, prompt="Enter a new name:")
+
+    assert result is None
+
+
+def test_resolve_local_name_returns_none_when_new_name_also_collides(
+    tmp_path, monkeypatch
+):
+    for skill_name in ("my-skill", "other-skill"):
+        skill_dir = tmp_path / skill_name
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text(
+            f"---\nname: {skill_name}\ndescription: already here\n"
+            "mysk:\n  state: active\n---\n"
+        )
+    _mock_text("other-skill", monkeypatch)
+
+    result = _resolve_local_name(tmp_path, "my-skill", None, prompt="Enter a new name:")
+
+    assert result is None
