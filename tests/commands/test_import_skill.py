@@ -520,6 +520,34 @@ def test_import_from_repo_root_imports_multiple_selected_skills(tmp_path, monkey
 
 
 @respx.mock
+def test_import_from_repo_root_left_aligns_skill_progress_header(tmp_path, monkeypatch):
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
+    _mock_checkbox(["skill-a", "skill-b"], monkeypatch)
+    _mock_select("active", monkeypatch)
+
+    root = RepoRootUrl.parse(_REPO_ROOT_URL)
+    tree_payload = {
+        "tree": [
+            {"type": "blob", "path": "skill-a/SKILL.md"},
+            {"type": "blob", "path": "skill-b/SKILL.md"},
+        ]
+    }
+    respx.get(root.trees_api_url()).mock(
+        return_value=httpx.Response(200, json=tree_payload)
+    )
+    tarball = _make_multi_tarball({"skill-a": _SKILL_A_MD, "skill-b": _SKILL_B_MD})
+    respx.get(_REPO_ROOT_TARBALL_URL).mock(
+        return_value=httpx.Response(200, content=tarball)
+    )
+
+    result = runner.invoke(app, ["import", _REPO_ROOT_URL])
+
+    assert result.exit_code == 0, result.output
+    header_line = next(line for line in result.output.splitlines() if "skill-a" in line)
+    assert header_line.startswith("skill-a")
+
+
+@respx.mock
 def test_import_from_repo_root_prompts_rename_on_collision(tmp_path, monkeypatch):
     monkeypatch.setenv("MYSK_SKILLS_DIR", str(tmp_path))
 
@@ -615,6 +643,26 @@ def test_import_from_local_dir_imports_selected_skills(tmp_path, monkeypatch):
     text_a = (library / "skill-a" / "SKILL.md").read_text()
     assert "state: active" in text_a
     assert "source:" not in text_a
+
+
+def test_import_from_local_dir_left_aligns_skill_progress_header(tmp_path, monkeypatch):
+    library = tmp_path / "library"
+    library.mkdir()
+    monkeypatch.setenv("MYSK_SKILLS_DIR", str(library))
+
+    collection = tmp_path / "my-collection"
+    collection.mkdir()
+    _make_local_skill_dir(collection, "skill-a")
+    _make_local_skill_dir(collection, "skill-b")
+
+    _mock_checkbox(["skill-a", "skill-b"], monkeypatch)
+    _mock_select("active", monkeypatch)
+
+    result = runner.invoke(app, ["import", str(collection)])
+
+    assert result.exit_code == 0, result.output
+    header_line = next(line for line in result.output.splitlines() if "skill-a" in line)
+    assert header_line.startswith("skill-a")
 
 
 @respx.mock

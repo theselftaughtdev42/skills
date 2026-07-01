@@ -85,7 +85,9 @@ def _import_from_local_dir(path: Path) -> None:
         skill_dir = skill_dir_map[name]
 
         _console.print()
-        _console.print(Rule(f"[bold]{name}[/bold]  [dim]{i} of {total}[/dim]"))
+        _console.print(
+            Rule(f"[bold]{name}[/bold]  [dim]{i} of {total}[/dim]", align="left")
+        )
 
         local_name = _resolve_local_name(
             library,
@@ -172,7 +174,10 @@ def _import_from_repo_root(url: str) -> None:
 
         _console.print()
         _console.print(
-            Rule(f"[bold]{upstream_dir_name}[/bold]  [dim]{i} of {total}[/dim]")
+            Rule(
+                f"[bold]{upstream_dir_name}[/bold]  [dim]{i} of {total}[/dim]",
+                align="left",
+            )
         )
 
         local_name = _resolve_local_name(
