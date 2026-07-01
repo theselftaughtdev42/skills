@@ -56,6 +56,24 @@ class Skill(BaseModel):
             extra_fields=extra,
         )
 
+    def with_modified(self, *, value: bool) -> "Skill":
+        """Return a copy with the `modified` flag updated; raises if self-authored."""
+        if self.mysk is None or not self.mysk.provenance.is_imported:
+            msg = "skill is self-authored; modified only applies to imported skills"
+            raise ValueError(msg)
+        new_prov = self.mysk.provenance.model_copy(update={"modified": value})
+        new_block = self.mysk.model_copy(update={"provenance": new_prov})
+        return self.model_copy(update={"mysk": new_block})
+
+    def with_state(self, state: LifecycleState) -> "Skill":
+        """Return a copy with the lifecycle state updated; raises if no mysk block."""
+        if self.mysk is None:
+            msg = "skill has no mysk block; cannot set state"
+            raise ValueError(msg)
+        return self.model_copy(
+            update={"mysk": self.mysk.model_copy(update={"state": state})}
+        )
+
     def to_frontmatter(self) -> dict[str, Any]:
         """Render to a frontmatter dict with generic fields and the `mysk` block.
 
