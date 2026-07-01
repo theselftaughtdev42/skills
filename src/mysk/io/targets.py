@@ -5,7 +5,6 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict
 
 from mysk.domain.skill import Skill
-from mysk.io import frontmatter
 
 _KNOWN: list[tuple[str, str]] = [
     ("claude", ".claude/skills"),
@@ -31,13 +30,10 @@ class Target(BaseModel):
         return f"{display} ({self.name})"
 
 
-def is_deployed(target: Target, skill: Skill) -> bool:
-    """Return True if *skill* has a mysk-owned entry at *target*."""
-    skill_md = target.path / skill.name / "SKILL.md"
-    if not skill_md.is_file():
-        return False
-    data, _ = frontmatter.read(skill_md.read_text())
-    return "mysk" in data
+def is_deployed(target: Target, skill: Skill, library: Path) -> bool:
+    """Return True if *skill* has a mysk-owned symlink at *target*."""
+    link = target.path / skill.name
+    return link.is_symlink() and link.resolve().is_relative_to(library.resolve())
 
 
 def discover_targets(search_root: Path | None = None) -> list[Target]:

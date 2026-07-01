@@ -56,7 +56,7 @@ def _run(
     monkeypatch.setattr(
         undeploy_cmd,
         "is_deployed",
-        is_deployed_fn if is_deployed_fn is not None else lambda t, s: True,
+        is_deployed_fn if is_deployed_fn is not None else lambda t, s, lib: True,
     )
     if questionary_stub is not None:
         monkeypatch.setattr(undeploy_cmd, "questionary", questionary_stub)
@@ -94,7 +94,7 @@ def test_only_deployed_skills_offered_in_skill_prompt(monkeypatch):
         targets=[_CLAUDE_TARGET],
         skills=[_ACTIVE_SKILL, _EXPERIMENTAL_SKILL],
         questionary_stub=stub,
-        is_deployed_fn=lambda t, s: s.name == "foo",
+        is_deployed_fn=lambda t, s, lib: s.name == "foo",
     )
 
     skill_choices = [
@@ -113,7 +113,7 @@ def test_no_deployed_skills_in_selected_targets_exits_cleanly(monkeypatch):
         monkeypatch,
         targets=[_CLAUDE_TARGET],
         skills=[_ACTIVE_SKILL],
-        is_deployed_fn=lambda t, s: False,
+        is_deployed_fn=lambda t, s, lib: False,
         extra_args=["--agents", "claude"],
     )
 

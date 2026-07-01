@@ -19,7 +19,8 @@ _HIGHLIGHTED = {LifecycleState.ACTIVE, LifecycleState.EXPERIMENTAL}
 @app.callback()
 def list_skills() -> None:
     """List all skills and where they are deployed."""
-    skills = load_skills(skill_library())
+    library = skill_library()
+    skills = load_skills(library)
     targets = discover_targets()
 
     console = Console()
@@ -41,7 +42,7 @@ def list_skills() -> None:
                 )
             else:
                 provenance_label = "self-authored"
-            deployed_to = [t for t in targets if is_deployed(t, r.skill)]
+            deployed_to = [t for t in targets if is_deployed(t, r.skill, library)]
             deployed_label = "\n".join(t.label() for t in deployed_to) or "—"
             if state in _HIGHLIGHTED and deployed_to:
                 table.add_row(

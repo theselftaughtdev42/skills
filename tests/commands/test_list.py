@@ -82,7 +82,7 @@ def test_deployed_skill_appears_in_table_with_target_label(monkeypatch):
         monkeypatch,
         targets=[_CLAUDE_TARGET],
         skills=[_ACTIVE_SKILL],
-        deployed_fn=lambda t, s: True,
+        deployed_fn=lambda t, s, lib: True,
     )
 
     assert result.exit_code == 0
@@ -95,7 +95,7 @@ def test_undeployed_skill_shows_em_dash_in_deployed_to_column(monkeypatch):
         monkeypatch,
         targets=[_CLAUDE_TARGET],
         skills=[_ACTIVE_SKILL],
-        deployed_fn=lambda t, s: False,
+        deployed_fn=lambda t, s, lib: False,
     )
 
     assert result.exit_code == 0
@@ -119,7 +119,7 @@ def test_non_deployable_skill_shows_path_when_deployed(monkeypatch):
         monkeypatch,
         targets=[_CLAUDE_TARGET],
         skills=[_DEPRECATED_SKILL],
-        deployed_fn=lambda t, s: True,
+        deployed_fn=lambda t, s, lib: True,
     )
 
     assert result.exit_code == 0
@@ -131,7 +131,7 @@ def test_non_deployable_skill_shows_em_dash_when_not_deployed(monkeypatch):
         monkeypatch,
         targets=[_CLAUDE_TARGET],
         skills=[_DEPRECATED_SKILL],
-        deployed_fn=lambda t, s: False,
+        deployed_fn=lambda t, s, lib: False,
     )
 
     assert result.exit_code == 0

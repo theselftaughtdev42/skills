@@ -15,6 +15,22 @@ def test_target_label_uses_absolute_path_when_not_under_home():
     assert t.label() == "/var/skills (claude)"
 
 
+def test_is_deployed_false_when_symlink_points_outside_library(tmp_path):
+    library = tmp_path / "library"
+    elsewhere = tmp_path / "elsewhere" / "foo"
+    elsewhere.mkdir(parents=True)
+    skill = Skill(
+        name="foo",
+        description="d",
+        mysk=MyskBlock(state=LifecycleState.ACTIVE),
+    )
+    target = Target(name="claude", path=tmp_path / "target")
+    target.path.mkdir()
+    (target.path / "foo").symlink_to(elsewhere)
+
+    assert is_deployed(target, skill, library) is False
+
+
 def test_discover_targets_returns_agent_when_home_dir_exists(tmp_path):
     (tmp_path / ".claude").mkdir()
 
@@ -40,42 +56,44 @@ def test_discover_targets_excludes_agent_when_home_dir_missing(tmp_path):
     assert targets == []
 
 
-def test_is_deployed_true_when_skill_dir_exists_with_mysk_block(tmp_path):
+def test_is_deployed_true_when_skill_link_points_into_library(tmp_path):
+    library = tmp_path / "library"
+    skill_source = library / "foo"
+    skill_source.mkdir(parents=True)
     skill = Skill(
         name="foo",
         description="d",
         mysk=MyskBlock(state=LifecycleState.ACTIVE),
     )
-    target = Target(name="claude", path=tmp_path)
-    skill_dir = tmp_path / "foo"
-    skill_dir.mkdir()
-    (skill_dir / "SKILL.md").write_text(
-        "---\nname: foo\ndescription: d\nmysk:\n  state: active\n---\n"
-    )
+    target = Target(name="claude", path=tmp_path / "target")
+    target.path.mkdir()
+    (target.path / "foo").symlink_to(skill_source)
 
-    assert is_deployed(target, skill) is True
+    assert is_deployed(target, skill, library) is True
 
 
-def test_is_deployed_false_when_skill_dir_missing(tmp_path):
+def test_is_deployed_false_when_no_entry_at_target(tmp_path):
+    library = tmp_path / "library"
     skill = Skill(
         name="foo",
         description="d",
         mysk=MyskBlock(state=LifecycleState.ACTIVE),
     )
-    target = Target(name="claude", path=tmp_path)
+    target = Target(name="claude", path=tmp_path / "target")
+    target.path.mkdir()
 
-    assert is_deployed(target, skill) is False
+    assert is_deployed(target, skill, library) is False
 
 
-def test_is_deployed_false_when_skill_dir_exists_but_no_mysk_block(tmp_path):
+def test_is_deployed_false_when_entry_is_plain_directory(tmp_path):
+    library = tmp_path / "library"
     skill = Skill(
         name="foo",
         description="d",
         mysk=MyskBlock(state=LifecycleState.ACTIVE),
     )
-    target = Target(name="claude", path=tmp_path)
-    skill_dir = tmp_path / "foo"
-    skill_dir.mkdir()
-    (skill_dir / "SKILL.md").write_text("---\nname: foo\ndescription: d\n---\n")
+    target = Target(name="claude", path=tmp_path / "target")
+    target.path.mkdir()
+    (target.path / "foo").mkdir()
 
-    assert is_deployed(target, skill) is False
+    assert is_deployed(target, skill, library) is False

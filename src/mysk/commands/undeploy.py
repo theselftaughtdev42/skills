@@ -68,7 +68,7 @@ def undeploy(
         r
         for r in deployable
         if r.skill is not None
-        and any(is_deployed(t, r.skill) for t in selected_targets)
+        and any(is_deployed(t, r.skill, library) for t in selected_targets)
     ]
 
     if not deployed:
