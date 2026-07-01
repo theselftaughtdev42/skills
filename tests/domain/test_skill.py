@@ -228,6 +228,116 @@ def test_renamed_import_writes_upstream_name():
     assert block["upstream_name"] == "original-name"
 
 
+def test_with_state_returns_skill_with_new_state():
+    skill = Skill(
+        name="foo",
+        description="bar",
+        mysk=MyskBlock(state=LifecycleState.ACTIVE),
+    )
+
+    updated = skill.with_state(LifecycleState.DEPRECATED)
+
+    assert updated.mysk is not None
+    assert updated.mysk.state is LifecycleState.DEPRECATED
+
+
+def test_with_state_raises_for_unmigrated_skill():
+    skill = Skill(name="foo", description="bar")
+
+    with pytest.raises(ValueError, match="no mysk block"):
+        skill.with_state(LifecycleState.ACTIVE)
+
+
+def test_with_modified_sets_modified_true_on_imported_skill():
+    skill = Skill(
+        name="foo",
+        description="bar",
+        mysk=MyskBlock(
+            state=LifecycleState.ACTIVE,
+            provenance=Provenance(source="https://github.com/a/b", modified=False),
+        ),
+    )
+
+    updated = skill.with_modified(value=True)
+
+    assert updated.mysk is not None
+    assert updated.mysk.provenance.modified is True
+
+
+def test_with_modified_sets_modified_false_on_imported_skill():
+    skill = Skill(
+        name="foo",
+        description="bar",
+        mysk=MyskBlock(
+            state=LifecycleState.ACTIVE,
+            provenance=Provenance(source="https://github.com/a/b", modified=True),
+        ),
+    )
+
+    updated = skill.with_modified(value=False)
+
+    assert updated.mysk is not None
+    assert updated.mysk.provenance.modified is False
+
+
+def test_with_modified_raises_for_self_authored_skill():
+    skill = Skill(
+        name="foo",
+        description="bar",
+        mysk=MyskBlock(state=LifecycleState.ACTIVE),
+    )
+
+    with pytest.raises(ValueError, match="self-authored"):
+        skill.with_modified(value=True)
+
+
+def test_with_modified_raises_for_unmigrated_skill():
+    skill = Skill(name="foo", description="bar")
+
+    with pytest.raises(ValueError, match="self-authored"):
+        skill.with_modified(value=True)
+
+
+def test_with_modified_preserves_source_and_upstream_name():
+    skill = Skill(
+        name="local",
+        description="bar",
+        mysk=MyskBlock(
+            state=LifecycleState.ACTIVE,
+            provenance=Provenance(
+                source="https://github.com/a/b",
+                modified=False,
+                upstream_name="original",
+            ),
+        ),
+    )
+
+    updated = skill.with_modified(value=True)
+
+    assert updated.mysk is not None
+    assert updated.mysk.provenance.source == "https://github.com/a/b"
+    assert updated.mysk.provenance.upstream_name == "original"
+
+
+def test_with_state_preserves_provenance_and_extra_fields():
+    skill = Skill(
+        name="foo",
+        description="bar",
+        mysk=MyskBlock(
+            state=LifecycleState.ACTIVE,
+            provenance=Provenance(source="https://github.com/a/b", modified=True),
+        ),
+        extra_fields={"license": "MIT"},
+    )
+
+    updated = skill.with_state(LifecycleState.DEPRECATED)
+
+    assert updated.mysk is not None
+    assert updated.mysk.provenance.source == "https://github.com/a/b"
+    assert updated.mysk.provenance.modified is True
+    assert updated.extra_fields == {"license": "MIT"}
+
+
 def test_upstream_name_round_trips_through_frontmatter():
     skill = Skill(
         name="local-name",

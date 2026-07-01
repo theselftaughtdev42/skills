@@ -9,7 +9,7 @@ import typer
 from rich import print as rprint
 from rich.markup import escape
 
-from mysk.domain import LifecycleState
+from mysk.domain import LifecycleState, Skill
 from mysk.io import frontmatter
 from mysk.io.skills import load_skills, skill_library
 
@@ -30,19 +30,16 @@ def set_skill_modified(skill_path: Path, *, value: bool) -> None:
     """Write the `modified` flag on an imported skill's SKILL.md."""
     text = skill_path.read_text()
     data, body = frontmatter.read(text)
-    if not data.get("mysk", {}).get("source"):
-        msg = "skill is self-authored; modified only applies to imported skills"
-        raise ValueError(msg)
-    data["mysk"]["modified"] = value
-    skill_path.write_text(frontmatter.write(data, body))
+    skill = Skill.from_frontmatter(data).with_modified(value=value)
+    skill_path.write_text(frontmatter.write(skill.to_frontmatter(), body))
 
 
 def set_skill_lifecycle(skill_path: Path, state: LifecycleState) -> None:
     """Write the lifecycle `state` on a skill's SKILL.md."""
     text = skill_path.read_text()
     data, body = frontmatter.read(text)
-    data["mysk"]["state"] = state.value
-    skill_path.write_text(frontmatter.write(data, body))
+    skill = Skill.from_frontmatter(data).with_state(state)
+    skill_path.write_text(frontmatter.write(skill.to_frontmatter(), body))
 
 
 def _choice_title(path: Path) -> str:
